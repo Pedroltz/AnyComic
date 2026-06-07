@@ -4,7 +4,7 @@
 ![Entity Framework](https://img.shields.io/badge/Entity%20Framework-9.0-green)
 ![SQL Server](https://img.shields.io/badge/SQL%20Server-2019+-red)
 
-Sistema web desenvolvido em ASP.NET Core MVC para gerenciamento e leitura de mangás online, com área administrativa completa e sistema de autenticação.
+Sistema web desenvolvido em ASP.NET Core MVC para gerenciamento e leitura de mangás e exibição de animes online, com área administrativa completa e sistema de autenticação.
 
 ## Diagramas
 
@@ -21,11 +21,17 @@ O projeto conta com diagramas técnicos que documentam a arquitetura e casos de 
 - **Update** - Editar informações e capa dos mangás
 - **Delete** - Remover mangás do sistema
 
+### CRUD Completo de Animes
+- **Create** - Criar animes (título, estúdio, descrição e capa) e adicionar episódios
+- **Read** - Listar/visualizar animes e assistir aos episódios
+- **Update** - Editar animes e episódios (link de vídeo, data de lançamento)
+- **Delete** - Remover animes e episódios
+
 ### Recursos Adicionais
-- Catálogo de mangás com capas e descrições
-- Sistema de leitura página por página
+- Catálogo de mangás e animes com capas e descrições
+- Sistema de leitura página por página e player de episódios (embed/stream ou arquivo)
 - Cadastro e autenticação de usuários
-- Sistema de favoritos para usuários
+- Sistema de favoritos para usuários (mangás e animes)
 - Área administrativa protegida
 - Upload de capas e páginas dos mangás
 - Gestão de usuários administrativos
@@ -166,23 +172,28 @@ O sistema cria automaticamente um usuário administrador:
 AnyComic-FDevs/
 │
 ├── Controllers/          # Controllers MVC (lógica de negócio)
-│   ├── AdminController.cs       # CRUD de mangás e administração
+│   ├── AdminController.cs       # CRUD de mangás/animes e administração
 │   ├── AccountController.cs     # Autenticação e registro
 │   ├── HomeController.cs        # Páginas públicas
-│   └── MangaController.cs       # Visualização e leitura de mangás
+│   ├── MangaController.cs       # Visualização e leitura de mangás
+│   └── AnimeController.cs       # Visualização e exibição de animes
 │
 ├── Models/              # Modelos de dados (entidades)
 │   ├── Manga.cs                # Entidade Mangá
 │   ├── PaginaManga.cs          # Páginas dos mangás
+│   ├── Anime.cs                # Entidade Anime
+│   ├── Episodio.cs             # Episódios dos animes (link de vídeo)
 │   ├── Usuario.cs              # Usuário comum
 │   ├── UsuarioAdmin.cs         # Usuário administrador
-│   └── Favorito.cs             # Relação usuário-mangá favorito
+│   ├── Favorito.cs             # Relação usuário-mangá favorito
+│   └── FavoritoAnime.cs        # Relação usuário-anime favorito
 │
 ├── Views/               # Views (interface do usuário)
 │   ├── Admin/                  # Views administrativas
 │   ├── Account/                # Views de autenticação
 │   ├── Home/                   # Views públicas
 │   ├── Manga/                  # Views de leitura
+│   ├── Anime/                  # Views de exibição de animes
 │   └── Shared/                 # Views compartilhadas
 │
 ├── Data/                # Contexto do Entity Framework
@@ -244,6 +255,28 @@ AnyComic-FDevs/
 - UsuarioId (FK → Usuarios)
 - MangaId (FK → Mangas)
 - DataAdicionado
+
+**Animes**
+- Id (PK)
+- Titulo
+- Autor (estúdio)
+- Descricao
+- ImagemCapa
+- DataCriacao
+
+**Episodios**
+- Id (PK)
+- AnimeId (FK → Animes)
+- NumeroEpisodio
+- NomeEpisodio (opcional)
+- LinkVideo
+- DataLancamento
+
+**FavoritosAnime**
+- Id (PK)
+- UsuarioId (FK → Usuarios)
+- AnimeId (FK → Animes)
+- DataAdicao
 
 ## Como Usar
 
