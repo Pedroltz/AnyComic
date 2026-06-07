@@ -288,56 +288,85 @@ namespace AnyComic.Services
         private static string? ExtractAuthor(HtmlDocument doc, Dictionary<string, string>? detailMap = null)
         {
             detailMap ??= ExtractDetailMap(doc);
-            foreach (var label in new[] { "Author(s)", "Author" })
+            foreach (var label in new[] { "Author(s)", "Author", "Artist(s)", "Artist" })
                 if (detailMap.TryGetValue(label, out var val)) return val;
             return null;
         }
 
         /// <summary>
-        /// Returns a dictionary of all label→value pairs found in the details list.
-        /// WeebCentral uses a flex list of <li> elements where one child is the label
-        /// and another is the value (possibly inside an <a>).
-        /// Also dumps all found labels to the console to aid selector debugging.
+        /// Builds a label→value dictionary from WeebCentral's metadata section.
+        /// Tag-agnostic: reads direct element children of each <li> or flex container,
+        /// treating the first child's text as label and the rest as value.
         /// </summary>
         private static Dictionary<string, string> ExtractDetailMap(HtmlDocument doc)
         {
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            // WeebCentral details are <li class="flex ..."> children with label/value spans
-            var listItems = doc.DocumentNode.SelectNodes("//li[contains(@class,'flex')]")
-                         ?? doc.DocumentNode.SelectNodes("//ul//li");
+            // Dump body text preview to console to help identify correct selectors
+            var bodyText = doc.DocumentNode.SelectSingleNode("//body")?.InnerText ?? "";
+            bodyText = Regex.Replace(bodyText, @"\s+", " ").Trim();
+            Console.WriteLine($"  [meta] Body preview: {bodyText[..Math.Min(500, bodyText.Length)]}");
 
-            if (listItems == null)
+            // Try flex <li> first, then all <li>, then flex <div>
+            var candidates =
+                doc.DocumentNode.SelectNodes("//li[contains(@class,'flex')]")
+                ?? doc.DocumentNode.SelectNodes("//li")
+                ?? doc.DocumentNode.SelectNodes("//div[contains(@class,'flex')]");
+
+            if (candidates != null)
             {
-                Console.WriteLine("  [meta] No detail list items found");
-                return map;
+                foreach (var node in candidates)
+                {
+                    // Read text of each direct element child (tag-agnostic)
+                    var childTexts = node.ChildNodes
+                        .Where(c => c.NodeType == HtmlAgilityPack.HtmlNodeType.Element)
+                        .Select(c => HtmlEntity.DeEntitize(c.InnerText.Trim()))
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .ToList();
+
+                    if (childTexts.Count < 2) continue;
+
+                    var label = childTexts[0];
+                    // Skip entries that are not short metadata labels
+                    if (label.Length > 40 || label.Contains('.')) continue;
+
+                    var value = string.Join(", ", childTexts.Skip(1));
+                    if (!map.ContainsKey(label) && !string.IsNullOrEmpty(value))
+                        map[label] = value;
+                }
             }
 
-            foreach (var li in listItems)
+            // Fallback XPath: find exact label text anywhere, then grab next element sibling
+            foreach (var label in new[] { "Author(s)", "Author", "Artist(s)", "Year", "Published" })
             {
-                var spans = li.SelectNodes(".//span");
-                if (spans == null || spans.Count < 1) continue;
+                if (map.ContainsKey(label)) continue;
 
-                var label = HtmlEntity.DeEntitize(spans[0].InnerText.Trim());
-                if (string.IsNullOrEmpty(label)) continue;
+                var labelNode = doc.DocumentNode.SelectSingleNode(
+                    $"//*[normalize-space(text())='{label}']");
+                if (labelNode == null) continue;
 
-                // Value: prefer the second span, then any <a> inside the li
-                string value = "";
-                if (spans.Count >= 2)
-                    value = HtmlEntity.DeEntitize(spans[1].InnerText.Trim());
+                // Next element sibling of the label node itself
+                var sibling = labelNode.NextSibling;
+                while (sibling != null && sibling.NodeType != HtmlAgilityPack.HtmlNodeType.Element)
+                    sibling = sibling.NextSibling;
 
-                if (string.IsNullOrEmpty(value))
+                // Or parent's next element sibling
+                if (sibling == null)
                 {
-                    var link = li.SelectSingleNode(".//a");
-                    if (link != null)
-                        value = HtmlEntity.DeEntitize(link.InnerText.Trim());
+                    sibling = labelNode.ParentNode?.NextSibling;
+                    while (sibling != null && sibling.NodeType != HtmlAgilityPack.HtmlNodeType.Element)
+                        sibling = sibling.NextSibling;
                 }
 
-                if (!string.IsNullOrEmpty(value))
-                    map[label] = value;
+                if (sibling != null)
+                {
+                    var val = HtmlEntity.DeEntitize(sibling.InnerText.Trim());
+                    if (!string.IsNullOrEmpty(val))
+                        map[label] = val;
+                }
             }
 
-            Console.WriteLine($"  [meta] Detail map keys: {string.Join(", ", map.Keys)}");
+            Console.WriteLine($"  [meta] Detail map: {string.Join(" | ", map.Select(kv => $"{kv.Key}={kv.Value}"))}");
             return map;
         }
 
