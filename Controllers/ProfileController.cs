@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -65,6 +67,7 @@ namespace AnyComic.Controllers
 
             return View(new EditarPerfilViewModel
             {
+                Nome = usuario.Nome,
                 Sobre = usuario.Sobre,
                 FotoPerfilAtual = usuario.FotoPerfil,
                 ImagemBannerAtual = usuario.ImagemBanner
@@ -81,6 +84,15 @@ namespace AnyComic.Controllers
             var usuario = await _context.Usuarios.FindAsync(userId);
             if (usuario == null) return NotFound();
 
+            if (!ModelState.IsValid)
+            {
+                vm.FotoPerfilAtual = usuario.FotoPerfil;
+                vm.ImagemBannerAtual = usuario.ImagemBanner;
+                return View(vm);
+            }
+
+            var nameChanged = vm.Nome.Trim() != usuario.Nome;
+            usuario.Nome  = vm.Nome.Trim();
             usuario.Sobre = vm.Sobre?.Trim();
 
             if (vm.FotoPerfil != null && vm.FotoPerfil.Length > 0)
@@ -110,6 +122,24 @@ namespace AnyComic.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            // Refresh auth cookie so the navbar shows the updated name immediately
+            if (nameChanged)
+            {
+                var claims = new List<Claim>
+                {
+                    new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                    new(ClaimTypes.Name, usuario.Nome),
+                    new(ClaimTypes.Email, usuario.Email),
+                    new("IsAdmin", "False")
+                };
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(identity),
+                    new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24) });
+            }
+
             return RedirectToAction(nameof(Index), new { id = userId });
         }
 

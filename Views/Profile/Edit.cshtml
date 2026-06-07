@@ -193,6 +193,17 @@
     <form method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
 
+        <!-- Name -->
+        <div class="form-group">
+            <label class="form-label" for="Nome">Display Name</label>
+            <input id="Nome" name="Nome" type="text" class="form-control-dark"
+                   value="@Model.Nome" maxlength="100" placeholder="Your name" required />
+            @if (ViewData.ModelState["Nome"]?.Errors.Count > 0)
+            {
+                <p class="field-error">@ViewData.ModelState["Nome"]!.Errors.First().ErrorMessage</p>
+            }
+        </div>
+
         <!-- Banner -->
         <div class="form-group">
             <label class="form-label">Banner Image

@@ -10,6 +10,10 @@ namespace AnyComic.Models.ViewModels
 
     public class EditarPerfilViewModel
     {
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100, ErrorMessage = "Name must be at most 100 characters")]
+        public string Nome { get; set; } = "";
+
         public string? Sobre { get; set; }
         public IFormFile? FotoPerfil { get; set; }
         public IFormFile? ImagemBanner { get; set; }
