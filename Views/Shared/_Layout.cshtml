@@ -192,50 +192,5 @@
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
-
-    <script>
-        // Mobile page slide transition — only runs on screens ≤ 768px
-        (function () {
-            if (!window.matchMedia('(max-width: 768px)').matches) return;
-
-            var main = document.querySelector('main');
-            if (!main) return;
-
-            // Slide in from right on every page load
-            main.classList.add('page-enter');
-            main.addEventListener('animationend', function () {
-                main.classList.remove('page-enter');
-            }, { once: true });
-
-            // Slide out to the left before navigating to a new page
-            document.addEventListener('click', function (e) {
-                // Skip if something else already handled this click
-                if (e.defaultPrevented) return;
-
-                var link = e.target.closest('a[href]');
-                if (!link) return;
-
-                var href = link.getAttribute('href');
-
-                // Skip non-navigating hrefs
-                if (!href || href === '#' || href.startsWith('#') ||
-                    href.startsWith('javascript:') ||
-                    href.startsWith('mailto:') ||
-                    href.startsWith('tel:') ||
-                    link.hasAttribute('download') ||
-                    link.target === '_blank') return;
-
-                // Skip external links
-                if (/^https?:\/\//i.test(href) &&
-                    !href.startsWith(window.location.origin)) return;
-
-                e.preventDefault();
-                main.classList.add('page-exit');
-
-                // Navigate after the exit animation finishes (240 ms)
-                setTimeout(function () { window.location.href = href; }, 240);
-            });
-        })();
-    </script>
 </body>
 </html>
