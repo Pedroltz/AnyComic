@@ -8,6 +8,7 @@ namespace AnyComic.Services
     /// <summary>
     /// Imports manga metadata and chapter page URLs from weebcentral.com.
     /// Images are NOT downloaded — external URLs are indexed and stored directly.
+    /// WeebCentral uses HTMX for dynamic content; sub-requests need HX-Request headers.
     /// </summary>
     public class WeebCentralImporter
     {
@@ -28,17 +29,13 @@ namespace AnyComic.Services
             _httpClient = new HttpClient(handler);
             _httpClient.Timeout = TimeSpan.FromSeconds(60);
 
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
-            _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
+            // Only set headers that are the same for every request type
+            _httpClient.DefaultRequestHeaders.Add("User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
             _httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
             _httpClient.DefaultRequestHeaders.Add("Sec-Ch-Ua", "\"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"");
             _httpClient.DefaultRequestHeaders.Add("Sec-Ch-Ua-Mobile", "?0");
             _httpClient.DefaultRequestHeaders.Add("Sec-Ch-Ua-Platform", "\"Windows\"");
-            _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-Dest", "document");
-            _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-Mode", "navigate");
-            _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-Site", "none");
-            _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-User", "?1");
-            _httpClient.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
         }
 
         #region DTOs
@@ -75,7 +72,8 @@ namespace AnyComic.Services
                     return null;
                 }
 
-                var mangaHtml = await _httpClient.GetStringAsync(url);
+                // Fetch manga page as a normal browser navigation
+                var mangaHtml = await GetNavigate(url);
                 var mangaDoc = new HtmlDocument();
                 mangaDoc.LoadHtml(mangaHtml);
 
@@ -86,7 +84,7 @@ namespace AnyComic.Services
 
                 Console.WriteLine($"Found manga: {title} by {author}");
 
-                var allChapters = await GetFullChapterList(seriesId);
+                var allChapters = await GetFullChapterList(seriesId, url);
                 if (allChapters.Count == 0)
                 {
                     Console.WriteLine("No chapters found");
@@ -116,7 +114,7 @@ namespace AnyComic.Services
                     {
                         Console.WriteLine($"Indexing chapter {index}/{selectedChapters.Count}: {chapter.ChapterNumber}");
 
-                        var pageUrls = await IndexChapterPages(chapter);
+                        var pageUrls = await IndexChapterPages(chapter, url);
 
                         if (pageUrls.Count > 0)
                         {
@@ -128,9 +126,13 @@ namespace AnyComic.Services
                             });
                             Console.WriteLine($"  Indexed {pageUrls.Count} pages");
                         }
+                        else
+                        {
+                            Console.WriteLine($"  No pages found for chapter {chapter.ChapterNumber}");
+                        }
 
                         index++;
-                        await Task.Delay(500);
+                        await Task.Delay(600);
                     }
                     catch (Exception ex)
                     {
@@ -155,20 +157,63 @@ namespace AnyComic.Services
 
         #endregion
 
+        #region Private Methods - HTTP Helpers
+
+        /// <summary>
+        /// Fetches a URL as a standard browser page navigation.
+        /// </summary>
+        private async Task<string> GetNavigate(string url)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+            req.Headers.Add("Sec-Fetch-Dest", "document");
+            req.Headers.Add("Sec-Fetch-Mode", "navigate");
+            req.Headers.Add("Sec-Fetch-Site", "none");
+            req.Headers.Add("Sec-Fetch-User", "?1");
+            req.Headers.Add("Upgrade-Insecure-Requests", "1");
+            var response = await _httpClient.SendAsync(req);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        /// <summary>
+        /// Fetches a URL as an HTMX partial request (same-origin XHR).
+        /// WeebCentral's chapter list and image endpoints are loaded this way.
+        /// </summary>
+        private async Task<string> GetHtmx(string url, string referrerUrl)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.Add("Accept", "*/*");
+            req.Headers.Add("Sec-Fetch-Dest", "empty");
+            req.Headers.Add("Sec-Fetch-Mode", "cors");
+            req.Headers.Add("Sec-Fetch-Site", "same-origin");
+            req.Headers.Referrer = new Uri(referrerUrl);
+            req.Headers.Add("HX-Request", "true");
+            req.Headers.Add("HX-Current-URL", referrerUrl);
+            var response = await _httpClient.SendAsync(req);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        #endregion
+
         #region Private Methods - Indexing
 
-        private async Task<List<string>> IndexChapterPages(WeebCentralChapter chapter)
+        private async Task<List<string>> IndexChapterPages(WeebCentralChapter chapter, string mangaUrl)
         {
             var pageUrls = new List<string>();
 
             try
             {
-                var imagesUrl = $"{BASE_URL}/chapters/{chapter.Id}/images?is_prev=False&current_page=1&reading_style=long_strip";
-                var html = await _httpClient.GetStringAsync(imagesUrl);
+                var chapterPageUrl = $"{BASE_URL}/chapters/{chapter.Id}";
+                var imagesUrl = $"{chapterPageUrl}/images?is_prev=False&current_page=1&reading_style=long_strip";
+                var html = await GetHtmx(imagesUrl, chapterPageUrl);
                 var doc = new HtmlDocument();
                 doc.LoadHtml(html);
 
-                var imgNodes = doc.DocumentNode.SelectNodes("//img[@alt]");
+                var imgNodes = doc.DocumentNode.SelectNodes("//img[@alt]")
+                            ?? doc.DocumentNode.SelectNodes("//img");
+
                 if (imgNodes == null) return pageUrls;
 
                 foreach (var img in imgNodes)
@@ -177,8 +222,22 @@ namespace AnyComic.Services
                     if (!alt.StartsWith("Page ", StringComparison.OrdinalIgnoreCase)) continue;
 
                     var src = img.GetAttributeValue("src", "");
-                    if (!string.IsNullOrEmpty(src) && (src.Contains(".png") || src.Contains(".jpg") || src.Contains(".webp")))
+                    if (!string.IsNullOrEmpty(src))
                         pageUrls.Add(src);
+                }
+
+                // Fallback: any image with a recognisable extension if the above matched nothing
+                if (pageUrls.Count == 0 && imgNodes != null)
+                {
+                    foreach (var img in imgNodes)
+                    {
+                        var src = img.GetAttributeValue("src", "");
+                        if (!string.IsNullOrEmpty(src) &&
+                            (src.Contains(".png") || src.Contains(".jpg") || src.Contains(".webp") || src.Contains(".jpeg")))
+                        {
+                            pageUrls.Add(src);
+                        }
+                    }
                 }
 
                 Console.WriteLine($"  Found {pageUrls.Count} pages");
@@ -195,13 +254,13 @@ namespace AnyComic.Services
 
         #region Private Methods - Metadata Extraction
 
-        private string? ExtractSeriesId(string url)
+        private static string? ExtractSeriesId(string url)
         {
             var match = Regex.Match(url, @"weebcentral\.com/series/([A-Z0-9]+)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value : null;
         }
 
-        private string? ExtractTitle(HtmlDocument doc)
+        private static string? ExtractTitle(HtmlDocument doc)
         {
             var ogTitle = doc.DocumentNode.SelectSingleNode("//meta[@property='og:title']");
             if (ogTitle != null)
@@ -220,7 +279,7 @@ namespace AnyComic.Services
             return null;
         }
 
-        private string? ExtractAuthor(HtmlDocument doc)
+        private static string? ExtractAuthor(HtmlDocument doc)
         {
             var detailNodes = doc.DocumentNode.SelectNodes("//li[contains(@class, 'flex')]//span");
             if (detailNodes != null)
@@ -239,7 +298,7 @@ namespace AnyComic.Services
             return null;
         }
 
-        private string? ExtractDescription(HtmlDocument doc)
+        private static string? ExtractDescription(HtmlDocument doc)
         {
             var ogDesc = doc.DocumentNode.SelectSingleNode("//meta[@property='og:description']");
             if (ogDesc != null)
@@ -250,7 +309,7 @@ namespace AnyComic.Services
             return null;
         }
 
-        private string? ExtractCoverUrl(HtmlDocument doc)
+        private static string? ExtractCoverUrl(HtmlDocument doc)
         {
             var ogImage = doc.DocumentNode.SelectSingleNode("//meta[@property='og:image']");
             if (ogImage != null)
@@ -265,36 +324,66 @@ namespace AnyComic.Services
 
         #region Private Methods - Chapter List
 
-        private async Task<List<WeebCentralChapter>> GetFullChapterList(string seriesId)
+        private async Task<List<WeebCentralChapter>> GetFullChapterList(string seriesId, string mangaUrl)
         {
             var chapters = new List<WeebCentralChapter>();
 
             try
             {
-                var url  = $"{BASE_URL}/series/{seriesId}/full-chapter-list";
-                var html = await _httpClient.GetStringAsync(url);
+                var listUrl = $"{BASE_URL}/series/{seriesId}/full-chapter-list";
+                // The full-chapter-list endpoint is loaded via HTMX from the series page
+                var html = await GetHtmx(listUrl, mangaUrl);
                 var doc  = new HtmlDocument();
                 doc.LoadHtml(html);
 
-                var chapterLinks = doc.DocumentNode.SelectNodes("//a[contains(@href, '/chapters/')]");
-                if (chapterLinks == null) return chapters;
+                Console.WriteLine($"  Chapter list HTML length: {html.Length} chars");
+
+                // Primary selector: anchor tags that link to a chapter
+                var chapterLinks = doc.DocumentNode.SelectNodes("//a[contains(@href, '/chapters/')]")
+                                ?? doc.DocumentNode.SelectNodes("//a[contains(@href, 'chapter')]");
+
+                if (chapterLinks == null)
+                {
+                    Console.WriteLine("  No chapter links found in HTML");
+                    return chapters;
+                }
 
                 foreach (var link in chapterLinks)
                 {
                     var href = link.GetAttributeValue("href", "");
-                    if (string.IsNullOrEmpty(href) || !href.Contains("/chapters/")) continue;
+                    if (string.IsNullOrEmpty(href)) continue;
 
-                    var chapterText = link.InnerText.Trim();
-                    var match = Regex.Match(chapterText, @"Chapter\s+([\d.]+)", RegexOptions.IgnoreCase);
-                    if (!match.Success) continue;
+                    // Accept both relative and absolute URLs
+                    if (!href.Contains("/chapters/")) continue;
 
-                    if (!decimal.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out decimal chapterNum)) continue;
+                    var chapterText = HtmlEntity.DeEntitize(link.InnerText.Trim());
 
+                    // Extract chapter number — try several patterns
+                    decimal chapterNum = 0;
+                    var numMatch = Regex.Match(chapterText, @"(?:Chapter|Ch\.?)\s*([\d.]+)", RegexOptions.IgnoreCase);
+                    if (numMatch.Success)
+                    {
+                        decimal.TryParse(numMatch.Groups[1].Value,
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out chapterNum);
+                    }
+                    else
+                    {
+                        // Fallback: first number found anywhere in the text
+                        var anyNum = Regex.Match(chapterText, @"([\d]+(?:\.[\d]+)?)");
+                        if (anyNum.Success)
+                            decimal.TryParse(anyNum.Groups[1].Value,
+                                System.Globalization.NumberStyles.Any,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out chapterNum);
+                    }
+
+                    // Extract chapter ID from URL
                     var idMatch = Regex.Match(href, @"/chapters/([A-Z0-9]+)", RegexOptions.IgnoreCase);
                     if (!idMatch.Success) continue;
 
-                    var titleMatch = Regex.Match(chapterText, @"Chapter\s+[\d.]+\s*[:\-]\s*(.+)", RegexOptions.IgnoreCase);
+                    var titleMatch = Regex.Match(chapterText, @"(?:Chapter|Ch\.?)\s*[\d.]+\s*[:\-]\s*(.+)", RegexOptions.IgnoreCase);
 
                     chapters.Add(new WeebCentralChapter
                     {
@@ -308,6 +397,8 @@ namespace AnyComic.Services
                     .GroupBy(c => c.ChapterNumber)
                     .Select(g => g.First())
                     .ToList();
+
+                Console.WriteLine($"  Parsed {chapters.Count} chapters");
             }
             catch (Exception ex)
             {
@@ -321,7 +412,7 @@ namespace AnyComic.Services
 
         #region Private Methods - Chapter Filtering
 
-        private List<WeebCentralChapter> FilterChaptersByRange(List<WeebCentralChapter> allChapters, string range)
+        private static List<WeebCentralChapter> FilterChaptersByRange(List<WeebCentralChapter> allChapters, string range)
         {
             if (range.Trim().Equals("all", StringComparison.OrdinalIgnoreCase))
                 return allChapters;
