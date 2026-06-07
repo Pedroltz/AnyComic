@@ -100,28 +100,14 @@
         color: rgba(255,255,255,.4);
     }
 
-    /* About */
-    .profile-about {
-        margin: 28px 32px 0;
-        background: #1a1a1a;
-        border-radius: 10px;
-        padding: 18px 20px;
-        border: 1px solid rgba(255,255,255,.07);
-    }
-    .profile-about h3 {
-        font-size: 13px;
-        font-weight: 600;
-        color: rgba(255,255,255,.4);
-        text-transform: uppercase;
-        letter-spacing: .8px;
-        margin-bottom: 10px;
-    }
-    .profile-about p {
+    /* Bio — inline in the hero */
+    .profile-bio {
+        margin-top: 10px;
         font-size: 14px;
-        color: rgba(255,255,255,.8);
+        color: rgba(255,255,255,.6);
         line-height: 1.65;
         white-space: pre-wrap;
-        margin: 0;
+        max-width: 600px;
     }
 
     /* Sections */
@@ -200,7 +186,8 @@
             gap: 8px;
         }
         .profile-card .card-title { font-size: 10px; padding: 5px 6px; }
-        .profile-about, .profile-section { margin-left: 14px; margin-right: 14px; }
+        .profile-section { margin-left: 14px; margin-right: 14px; }
+        .profile-bio { font-size: 13px; }
     }
 </style>
 
@@ -231,17 +218,12 @@
         <div class="profile-hero-info">
             <h1 class="profile-name">@Model.Usuario.Nome</h1>
             <span class="profile-joined">Member since @Model.Usuario.DataCriacao.ToString("MMM yyyy")</span>
+            @if (!string.IsNullOrWhiteSpace(Model.Usuario.Sobre))
+            {
+                <p class="profile-bio">@Model.Usuario.Sobre</p>
+            }
         </div>
     </div>
-
-    <!-- About -->
-    @if (!string.IsNullOrWhiteSpace(Model.Usuario.Sobre))
-    {
-        <div class="profile-about">
-            <h3>About</h3>
-            <p>@Model.Usuario.Sobre</p>
-        </div>
-    }
 
     <!-- Manga Favorites -->
     <div class="profile-section">
