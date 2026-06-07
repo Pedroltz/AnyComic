@@ -22,6 +22,15 @@ namespace AnyComic.Models
 
         public DateTime DataCriacao { get; set; } = DateTime.Now;
 
+        [StringLength(500)]
+        public string? Sobre { get; set; }
+
+        [StringLength(260)]
+        public string? FotoPerfil { get; set; }
+
+        [StringLength(260)]
+        public string? ImagemBanner { get; set; }
+
         // Relationship with Favoritos
         public ICollection<Favorito> Favoritos { get; set; } = new List<Favorito>();
 
