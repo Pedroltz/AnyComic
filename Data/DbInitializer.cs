@@ -28,28 +28,6 @@ namespace AnyComic.Data
             };
 
             context.UsuariosAdmin.Add(admin);
-
-            // Criar alguns usuários de teste (opcional)
-            var userPassword = HashPassword("user123");
-            var usuario1 = new Usuario
-            {
-                Nome = "João Silva",
-                Email = "joao@example.com",
-                Senha = userPassword,
-                DataCriacao = DateTime.Now
-            };
-
-            var usuario2 = new Usuario
-            {
-                Nome = "Maria Santos",
-                Email = "maria@example.com",
-                Senha = userPassword,
-                DataCriacao = DateTime.Now
-            };
-
-            context.Usuarios.Add(usuario1);
-            context.Usuarios.Add(usuario2);
-
             context.SaveChanges();
         }
 

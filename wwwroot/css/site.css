@@ -49,9 +49,6 @@ body {
   --card-hover: #252525;
 }
 
-@media (max-width: 991px) {
-
-}
 
 /* ========================================
    Global Link & Text Styles
@@ -378,24 +375,6 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: auto;
 }
 
-.manga-status {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-top: 5px;
-}
-
-.manga-status.ongoing {
-  background-color: #28a745;
-  color: white;
-}
-
-.manga-status.completed {
-  background-color: var(--text-secondary);
-  color: white;
-}
 
 /* ========================================
    Page Container & Layout
@@ -976,7 +955,6 @@ textarea.form-control:focus {
 
 }
 
-/* Light theme overrides for newest section */
 
 /* ========================================
    Details Page Styles
@@ -1336,42 +1314,6 @@ textarea.form-control:focus {
   }
 }
 
-/* Light theme Details overrides */
-
-.manga-details {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 30px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.manga-details-cover {
-  width: 100%;
-  max-width: 300px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.manga-details-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 10px;
-}
-
-.manga-details-author {
-  font-size: 18px;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-}
-
-.manga-details-description {
-  font-size: 15px;
-  line-height: 1.8;
-  color: var(--text-primary);
-  margin-bottom: 25px;
-}
 
 /* ========================================
    Chapter List Styles
@@ -1504,7 +1446,6 @@ textarea.form-control:focus {
   }
 }
 
-/* Light theme chapter list */
 
 /* ========================================
    Reader Page Styles
@@ -1515,23 +1456,6 @@ textarea.form-control:focus {
   padding: 20px 0;
 }
 
-.reader-page {
-  max-width: 100%;
-  display: block;
-  margin: 0 auto 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.reader-controls {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.9);
-  padding: 15px;
-  text-align: center;
-  z-index: 1000;
-}
 
 /* ========================================
    Admin Panel Styles (Dark Theme)
@@ -1567,20 +1491,6 @@ textarea.form-control:focus {
   background-color: var(--bg-light);
 }
 
-/* ========================================
-   Utility Classes
-   ======================================== */
-.text-red {
-  color: var(--primary-red);
-}
-
-.bg-red {
-  background-color: var(--primary-red);
-}
-
-.border-red {
-  border-color: var(--primary-red) !important;
-}
 
 /* ========================================
    Animations
@@ -1600,38 +1510,7 @@ textarea.form-control:focus {
   animation: fadeIn 0.5s ease-out;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
-.slide-in {
-  animation: slideIn 0.4s ease-out;
-}
-
-/* ========================================
-   Loading Spinner
-   ======================================== */
-.spinner {
-  border: 3px solid var(--bg-light);
-  border-top: 3px solid var(--primary-red);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
 
 /* ========================================
    Banner Carousel Styles
@@ -1975,7 +1854,6 @@ textarea.form-control:focus {
   }
 }
 
-/* Light theme showcase overrides */
 
 /* ========================================
    Mobile Bottom Navigation
