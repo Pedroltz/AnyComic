@@ -80,9 +80,9 @@ namespace AnyComic.Services
                 var title       = ExtractTitle(mangaDoc) ?? "Unknown Manga";
                 var coverUrl    = ExtractCoverUrl(mangaDoc);
                 var detailMap   = ExtractDetailMap(mangaDoc);
-                var author      = ExtractAuthor(mangaDoc, detailMap)      ?? "Unknown";
+                var author      = ExtractAuthor(mangaDoc, detailMap)             ?? "Unknown";
                 var year        = ExtractYear(mangaDoc, detailMap);
-                var description = ExtractDescription(mangaDoc) ?? "Imported from WeebCentral";
+                var description = ExtractDescription(mangaDoc, detailMap) ?? "Imported from WeebCentral";
 
                 Console.WriteLine($"Found manga: {title} by {author} ({year?.ToString() ?? "no year"})");
 
@@ -326,8 +326,8 @@ namespace AnyComic.Services
 
                     if (childTexts.Count < 2) continue;
 
-                    var label = childTexts[0];
-                    // Skip entries that are not short metadata labels
+                    // WeebCentral labels end with ": " (e.g. "Author(s): ") — normalise
+                    var label = childTexts[0].TrimEnd(':', ' ');
                     if (label.Length > 40 || label.Contains('.')) continue;
 
                     var value = string.Join(", ", childTexts.Skip(1));
@@ -377,14 +377,26 @@ namespace AnyComic.Services
             return null;
         }
 
-        private static string? ExtractDescription(HtmlDocument doc)
+        private static string? ExtractDescription(HtmlDocument doc, Dictionary<string, string>? detailMap = null)
         {
-            // 1. og:description meta tag
+            detailMap ??= ExtractDetailMap(doc);
+
+            // 1. "Description" field from the detail map — WeebCentral puts the real
+            //    synopsis inside <li><strong>Description</strong><p>...</p></li>
+            if (detailMap.TryGetValue("Description", out var mapDesc) && mapDesc.Length > 20)
+            {
+                Console.WriteLine($"  [meta] Description from detail map ({mapDesc.Length} chars)");
+                return mapDesc;
+            }
+
+            // 2. og:description — only if it's not the generic "Read X online" placeholder
             var ogDesc = doc.DocumentNode.SelectSingleNode("//meta[@property='og:description']");
             if (ogDesc != null)
             {
                 var content = ogDesc.GetAttributeValue("content", "");
-                if (!string.IsNullOrEmpty(content))
+                if (!string.IsNullOrEmpty(content)
+                    && !content.Contains("online for free", StringComparison.OrdinalIgnoreCase)
+                    && !content.Contains("Read ") )
                 {
                     Console.WriteLine($"  [meta] Description from og:description ({content.Length} chars)");
                     return HtmlEntity.DeEntitize(content);
@@ -426,8 +438,8 @@ namespace AnyComic.Services
         private static int? ExtractYear(HtmlDocument doc, Dictionary<string, string>? detailMap = null)
         {
             detailMap ??= ExtractDetailMap(doc);
-            // Try the detail map first — common labels: "Year", "Published", "Release Year"
-            var yearStr = FindDetailValue(detailMap, "Year", "Published", "Release Year", "Release");
+            // WeebCentral uses "Released" (colon already stripped by ExtractDetailMap)
+            var yearStr = FindDetailValue(detailMap, "Released", "Year", "Published", "Release Year", "Release");
             if (yearStr != null)
             {
                 var m = Regex.Match(yearStr, @"\b(19|20)\d{2}\b");
