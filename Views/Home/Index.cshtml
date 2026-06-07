@@ -33,7 +33,7 @@
                                 <div class="banner-showcase-info">
                                     <h2 class="banner-showcase-title">@banner.Manga.Titulo</h2>
                                     <p class="banner-showcase-author">@banner.Manga.Autor</p>
-                                    <p class="banner-showcase-description">@(banner.Manga.Descricao.Length > 200 ? banner.Manga.Descricao.Substring(0, 200) + "..." : banner.Manga.Descricao)</p>
+                                    <p class="banner-showcase-description">@(banner.Manga.Descricao.Length > 300 ? banner.Manga.Descricao.Substring(0, 300) + "..." : banner.Manga.Descricao)</p>
                                     <a asp-controller="Manga" asp-action="Details" asp-route-id="@banner.Manga.Id" class="btn btn-primary banner-showcase-btn">
                                         Read Now
                                     </a>

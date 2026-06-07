@@ -24,5 +24,8 @@ namespace AnyComic.Models
 
         // Relationship with Favoritos
         public ICollection<Favorito> Favoritos { get; set; } = new List<Favorito>();
+
+        // Relationship with FavoritosAnime
+        public ICollection<FavoritoAnime> FavoritosAnime { get; set; } = new List<FavoritoAnime>();
     }
 }

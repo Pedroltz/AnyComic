@@ -17,6 +17,9 @@ namespace AnyComic.Data
         public DbSet<PaginaManga> PaginasMangas { get; set; }
         public DbSet<Favorito> Favoritos { get; set; }
         public DbSet<Banner> Banners { get; set; }
+        public DbSet<Anime> Animes { get; set; }
+        public DbSet<Episodio> Episodios { get; set; }
+        public DbSet<FavoritoAnime> FavoritosAnime { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -77,6 +80,34 @@ namespace AnyComic.Data
                 .WithMany()
                 .HasForeignKey(b => b.MangaId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // ===== Anime relationships (mirror Manga) =====
+
+            // Configurar relacionamento Anime - Episodio
+            modelBuilder.Entity<Episodio>()
+                .HasOne(e => e.Anime)
+                .WithMany(a => a.Episodios)
+                .HasForeignKey(e => e.AnimeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configurar relacionamento Usuario - FavoritoAnime
+            modelBuilder.Entity<FavoritoAnime>()
+                .HasOne(f => f.Usuario)
+                .WithMany(u => u.FavoritosAnime)
+                .HasForeignKey(f => f.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configurar relacionamento Anime - FavoritoAnime
+            modelBuilder.Entity<FavoritoAnime>()
+                .HasOne(f => f.Anime)
+                .WithMany(a => a.Favoritos)
+                .HasForeignKey(f => f.AnimeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Evitar favoritos de anime duplicados
+            modelBuilder.Entity<FavoritoAnime>()
+                .HasIndex(f => new { f.UsuarioId, f.AnimeId })
+                .IsUnique();
         }
     }
 }

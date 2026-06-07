@@ -1856,7 +1856,7 @@ textarea.form-control:focus {
 .banner-showcase-author {
   font-size: 18px;
   color: rgba(255, 255, 255, 0.8) !important;
-  margin: 0;
+  margin: -4px 0 0 0;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
 }
 
@@ -1866,14 +1866,14 @@ textarea.form-control:focus {
   margin: 8px 0 0 0;
   line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .banner-showcase-btn {
-  margin-top: 16px;
+  margin-top: 28px;
   width: fit-content;
   padding: 10px 28px;
   font-size: 15px;
@@ -1937,13 +1937,13 @@ textarea.form-control:focus {
 
   .banner-showcase-description {
     font-size: 13px;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     color: rgba(255, 255, 255, 0.6) !important;
     margin: 4px 0 0 0;
   }
 
   .banner-showcase-btn {
-    margin-top: 14px;
+    margin-top: 20px;
     padding: 12px 40px;
     font-size: 15px;
     border-radius: 24px;
@@ -2009,6 +2009,13 @@ textarea.form-control:focus {
     justify-content: space-around;
     align-items: center;
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
+    /* Keep the bar on its own GPU layer so it stays static (no jitter)
+       while the page scrolls on mobile browsers */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
   }
 
   .mobile-nav-item {
@@ -2049,9 +2056,9 @@ textarea.form-control:focus {
     padding-bottom: 64px;
   }
 
-  /* Hide site footer on mobile (bottom nav replaces it visually) */
+  /* Hide site footer on mobile — bottom nav replaces it */
   .footer {
-    margin-bottom: 60px;
+    display: none;
   }
 }
 
@@ -2143,4 +2150,10 @@ textarea.form-control:focus {
 .mobile-profile-action-danger:hover {
   color: #ef2c2f;
   background-color: rgba(239, 44, 47, 0.08);
+}
+
+.mobile-profile-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 4px 14px;
 }

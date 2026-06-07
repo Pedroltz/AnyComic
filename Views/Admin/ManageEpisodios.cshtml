@@ -1,0 +1,379 @@
+@model AnyComic.Models.Anime
+
+@{
+    ViewData["Title"] = $"Manage Episodes - {Model.Titulo}";
+}
+
+<div class="container">
+    <h1 class="mb-4">Manage Episodes - @Model.Titulo</h1>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Anime Details -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    @if (!string.IsNullOrEmpty(Model.ImagemCapa))
+                    {
+                        <img src="@Model.ImagemCapa" class="img-fluid rounded" alt="@Model.Titulo">
+                    }
+                </div>
+                <div class="col-md-9">
+                    <h3>@Model.Titulo</h3>
+                    <p><strong>Studio:</strong> @Model.Autor</p>
+                    <p><strong>Release Date:</strong> @Model.DataCriacao.ToString("dd/MM/yyyy")</p>
+                    <p><strong>Total Episodes:</strong> @Model.Episodios.Count</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Episode -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Add New Episode</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-controller="Admin" asp-action="CreateEpisodio"
+                  enctype="multipart/form-data" class="row g-3">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="animeId" value="@Model.Id" />
+
+                <div class="col-md-5">
+                    <label class="form-label">Episode Name (optional)</label>
+                    <input type="text" class="form-control" name="nomeEpisodio"
+                           placeholder="Leave empty for 'Episode X'">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Release Date</label>
+                    <input type="date" class="form-control" name="dataLancamento"
+                           value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Video Source</label>
+
+                    <!-- Toggle buttons -->
+                    <div class="btn-group d-block mb-3" role="group">
+                        <input type="radio" class="btn-check" name="videoSource" id="srcFile" value="file" checked>
+                        <label class="btn btn-outline-primary" for="srcFile">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor"
+                                 viewBox="0 0 16 16" class="me-1">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                            </svg>
+                            Upload File
+                        </label>
+                        <input type="radio" class="btn-check" name="videoSource" id="srcUrl" value="url">
+                        <label class="btn btn-outline-primary" for="srcUrl">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor"
+                                 viewBox="0 0 16 16" class="me-1">
+                                <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/>
+                                <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/>
+                            </svg>
+                            Link / URL
+                        </label>
+                    </div>
+
+                    <!-- File upload area -->
+                    <div id="fileSection">
+                        <div class="upload-area" id="uploadArea" onclick="document.getElementById('videoFile').click()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor"
+                                 viewBox="0 0 16 16" class="upload-icon">
+                                <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
+                                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
+                            </svg>
+                            <p class="upload-label" id="uploadLabel">Click to select a video file</p>
+                            <small class="text-muted">MP4, WebM, MKV, AVI, MOV, M4V</small>
+                        </div>
+                        <input type="file" id="videoFile" name="videoFile"
+                               accept=".mp4,.webm,.mkv,.avi,.mov,.m4v,video/*"
+                               class="d-none">
+                    </div>
+
+                    <!-- URL input -->
+                    <div id="urlSection" style="display:none;">
+                        <input type="text" class="form-control" id="linkVideoInput" name="linkVideo"
+                               placeholder="https://youtube.com/watch?v=... or https://...">
+                        <div class="form-text">YouTube, direct video URL or any embed link.</div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success">Add Episode</button>
+                    <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">Back</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Episodes -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Existing Episodes</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Episodios.Any())
+            {
+                <div class="list-group">
+                    @foreach (var episodio in Model.Episodios.OrderBy(e => e.NumeroEpisodio))
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-1">@episodio.NomeExibicao</h6>
+                                    <small class="text-muted">
+                                        Released: @episodio.DataLancamento.ToString("dd/MM/yyyy")
+                                        &nbsp;|&nbsp;
+                                        @if (episodio.LinkVideo.StartsWith("/uploads/"))
+                                        {
+                                            <span class="badge bg-success">Uploaded file</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info">External link</span>
+                                            <a href="@episodio.LinkVideo" target="_blank" rel="noopener" class="ms-1">View</a>
+                                        }
+                                    </small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#editEpisode@(episodio.Id)">
+                                        Edit
+                                    </button>
+                                    <form method="post" asp-controller="Admin" asp-action="DeleteEpisodio"
+                                          asp-route-id="@episodio.Id">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('Delete this episode?')">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Edit Form (Collapsible) -->
+                            <div class="collapse" id="editEpisode@(episodio.Id)">
+                                <form method="post" asp-controller="Admin" asp-action="EditEpisodio"
+                                      enctype="multipart/form-data" class="row g-2 mt-2 p-2 border rounded">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@episodio.Id" />
+                                    <!-- Keeps the current link when no new file/URL is provided -->
+                                    <input type="hidden" name="linkVideo" value="@episodio.LinkVideo" id="editLinkHidden@(episodio.Id)">
+
+                                    <div class="col-md-4">
+                                        <label class="form-label form-label-sm">Episode Name</label>
+                                        <input type="text" class="form-control form-control-sm"
+                                               name="nomeEpisodio" value="@episodio.NomeEpisodio"
+                                               placeholder="Optional">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label form-label-sm">Release Date</label>
+                                        <input type="date" class="form-control form-control-sm"
+                                               name="dataLancamento"
+                                               value="@episodio.DataLancamento.ToString("yyyy-MM-dd")">
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label form-label-sm fw-semibold">New Video (leave blank to keep current)</label>
+
+                                        <!-- Edit toggle -->
+                                        <div class="btn-group d-block mb-2" role="group">
+                                            <input type="radio" class="btn-check" name="editSource@(episodio.Id)"
+                                                   id="editSrcFile@(episodio.Id)" value="file" checked>
+                                            <label class="btn btn-sm btn-outline-primary" for="editSrcFile@(episodio.Id)">Upload File</label>
+                                            <input type="radio" class="btn-check" name="editSource@(episodio.Id)"
+                                                   id="editSrcUrl@(episodio.Id)" value="url">
+                                            <label class="btn btn-sm btn-outline-primary" for="editSrcUrl@(episodio.Id)">Link / URL</label>
+                                        </div>
+
+                                        <div id="editFileSection@(episodio.Id)">
+                                            <div class="upload-area upload-area-sm"
+                                                 onclick="document.getElementById('editVideoFile@(episodio.Id)').click()">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                     fill="currentColor" viewBox="0 0 16 16" class="me-2">
+                                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                                </svg>
+                                                <span id="editUploadLabel@(episodio.Id)">Click to select a new video file</span>
+                                            </div>
+                                            <input type="file" id="editVideoFile@(episodio.Id)" name="videoFile"
+                                                   accept=".mp4,.webm,.mkv,.avi,.mov,.m4v,video/*"
+                                                   class="d-none"
+                                                   onchange="updateEditLabel(@episodio.Id, this)">
+                                        </div>
+
+                                        <div id="editUrlSection@(episodio.Id)" style="display:none;">
+                                            <input type="text" class="form-control form-control-sm"
+                                                   name="linkVideo"
+                                                   placeholder="https://... (leave blank to keep current)"
+                                                   value="@(episodio.LinkVideo.StartsWith("/uploads/") ? "" : episodio.LinkVideo)">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-flex gap-2">
+                                        <button type="submit" class="btn btn-sm btn-success">Save</button>
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#editEpisode@(episodio.Id)">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">No episodes yet. Add the first one above.</p>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .upload-area {
+        border: 2px dashed var(--border-color, #dee2e6);
+        border-radius: 8px;
+        padding: 32px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s, background-color 0.2s;
+        background-color: var(--bg-light, #f8f9fa);
+    }
+
+    .upload-area:hover {
+        border-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.04);
+    }
+
+    .upload-area.dragover {
+        border-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.08);
+    }
+
+    .upload-area .upload-icon {
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+
+    .upload-area .upload-label {
+        margin: 0 0 4px;
+        font-weight: 600;
+        color: var(--text-primary, #333);
+    }
+
+    .upload-area-sm {
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 6px;
+        font-size: 14px;
+        color: var(--text-primary, #333);
+    }
+
+    .upload-area-sm svg {
+        color: #6c757d;
+        flex-shrink: 0;
+    }
+</style>
+
+@section Scripts {
+<script>
+// ---- Add form ----
+const srcFileRadio = document.getElementById('srcFile');
+const srcUrlRadio  = document.getElementById('srcUrl');
+const fileSection  = document.getElementById('fileSection');
+const urlSection   = document.getElementById('urlSection');
+const videoFileInput = document.getElementById('videoFile');
+const uploadLabel    = document.getElementById('uploadLabel');
+const uploadArea     = document.getElementById('uploadArea');
+const linkVideoInput = document.getElementById('linkVideoInput');
+
+srcFileRadio.addEventListener('change', () => {
+    fileSection.style.display = '';
+    urlSection.style.display = 'none';
+    linkVideoInput.name = '';          // disable from form submission
+    videoFileInput.name = 'videoFile'; // re-enable
+});
+
+srcUrlRadio.addEventListener('change', () => {
+    fileSection.style.display = 'none';
+    urlSection.style.display = '';
+    videoFileInput.name = '';          // disable from form submission
+    linkVideoInput.name = 'linkVideo'; // re-enable
+});
+
+videoFileInput.addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+        uploadLabel.textContent = this.files[0].name;
+        uploadArea.style.borderColor = '#198754';
+    }
+});
+
+// Drag & drop
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+        videoFileInput.files = e.dataTransfer.files;
+        uploadLabel.textContent = e.dataTransfer.files[0].name;
+        uploadArea.style.borderColor = '#198754';
+    }
+});
+
+// ---- Edit forms ----
+function updateEditLabel(id, input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('editUploadLabel' + id).textContent = input.files[0].name;
+    }
+}
+
+document.querySelectorAll('[id^="editSrcFile"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        const id = this.id.replace('editSrcFile', '');
+        document.getElementById('editFileSection' + id).style.display = '';
+        document.getElementById('editUrlSection'  + id).style.display = 'none';
+        // Restore the hidden fallback; clear text URL field name so it doesn't override
+        document.getElementById('editLinkHidden' + id).disabled = false;
+        document.getElementById('editVideoFile' + id).name = 'videoFile';
+        const urlInput = document.querySelector('#editUrlSection' + id + ' input[type=text]');
+        if (urlInput) urlInput.name = '';
+    });
+});
+
+document.querySelectorAll('[id^="editSrcUrl"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        const id = this.id.replace('editSrcUrl', '');
+        document.getElementById('editFileSection' + id).style.display = 'none';
+        document.getElementById('editUrlSection'  + id).style.display = '';
+        // Disable hidden fallback so URL field takes priority
+        document.getElementById('editLinkHidden' + id).disabled = true;
+        document.getElementById('editVideoFile' + id).name = '';
+        const urlInput = document.querySelector('#editUrlSection' + id + ' input[type=text]');
+        if (urlInput) urlInput.name = 'linkVideo';
+    });
+});
+</script>
+}

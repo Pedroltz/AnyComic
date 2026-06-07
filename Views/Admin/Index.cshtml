@@ -1,6 +1,7 @@
 @{
     ViewData["Title"] = "Admin Panel - AnyComic";
     var mangas = ViewBag.Mangas as List<AnyComic.Models.Manga>;
+    var animes = ViewBag.Animes as List<AnyComic.Models.Anime>;
     var admins = ViewBag.Admins as List<AnyComic.Models.UsuarioAdmin>;
     var banners = ViewBag.Banners as List<AnyComic.Models.Banner>;
 }
@@ -22,6 +23,14 @@
                         <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
                     </svg>
                     Manga (@(mangas?.Count ?? 0))
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="animes-tab" data-bs-toggle="tab" data-bs-target="#animes" type="button" role="tab" style="color: #333; font-weight: 600; padding: 12px 24px; border: none; background: transparent; transition: all 0.3s ease;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-top; margin-right: 8px;">
+                        <path d="M0 1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1zm4 0v6h8V1H4zm8 8H4v6h8V9zM1 1v2h2V1H1zm2 3H1v2h2V4zM1 7v2h2V7H1zm2 3H1v2h2v-2zm-2 3v2h2v-2H1zM15 1h-2v2h2V1zm-2 3v2h2V4h-2zm2 3h-2v2h2V7zm-2 3v2h2v-2h-2zm2 3h-2v2h2v-2zM6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
+                    </svg>
+                    Anime (@(animes?.Count ?? 0))
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -166,6 +175,111 @@
                         @if (string.IsNullOrEmpty(ViewBag.SearchManga))
                         {
                             <a asp-controller="Admin" asp-action="CreateManga" class="btn btn-primary">Add Manga</a>
+                        }
+                        else
+                        {
+                            <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-primary">Clear Search</a>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Anime Section -->
+            <div class="tab-pane fade" id="animes" role="tabpanel">
+                <!-- Search and Add Button -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <form method="get" asp-action="Index" class="d-flex" style="flex: 1; max-width: 400px;">
+                        <input type="text" name="searchAnime" class="form-control" placeholder="Search anime by title or studio..." value="@ViewBag.SearchAnime" style="border-radius: 4px 0 0 4px;">
+                        <button type="submit" class="btn btn-outline-primary" style="border-radius: 0 4px 4px 0; border-left: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </button>
+                    </form>
+                    <a asp-controller="Admin" asp-action="CreateAnime" class="btn btn-primary ms-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-top; margin-right: 5px;">
+                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                        </svg>
+                        Add Anime
+                    </a>
+                </div>
+
+                @if (animes != null && animes.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="admin-table table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Cover</th>
+                                    <th>Title</th>
+                                    <th>Studio</th>
+                                    <th style="width: 100px;">Episodes</th>
+                                    <th style="width: 120px;">Released</th>
+                                    <th style="width: 220px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var anime in animes)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(anime.ImagemCapa))
+                                            {
+                                                <img src="@anime.ImagemCapa" alt="@anime.Titulo" style="width: 50px; height: 70px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 50px; height: 70px; font-size: 10px; border-radius: 4px;">
+                                                    No cover
+                                                </div>
+                                            }
+                                        </td>
+                                        <td style="font-weight: 600; color: #333;">@anime.Titulo</td>
+                                        <td style="color: #6c757d;">@anime.Autor</td>
+                                        <td>
+                                            <span style="background-color: #f8f9fa; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; color: #333;">
+                                                @anime.Episodios.Count
+                                            </span>
+                                        </td>
+                                        <td style="color: #6c757d; font-size: 13px;">@anime.DataCriacao.ToString("MMM dd, yyyy")</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a asp-controller="Admin" asp-action="EditAnime" asp-route-id="@anime.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                                                    </svg>
+                                                </a>
+                                                <a asp-controller="Admin" asp-action="ManageEpisodios" asp-route-id="@anime.Id" class="btn btn-sm btn-outline-primary" title="Manage Episodes">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                                        <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
+                                                        <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
+                                                    </svg>
+                                                </a>
+                                                <a asp-controller="Admin" asp-action="DeleteAnime" asp-route-id="@anime.Id" class="btn btn-sm btn-outline-primary" title="Delete" style="color: #dc3545; border-color: #dc3545;">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/>
+                                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info text-center" style="margin-top: 40px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 15px; opacity: 0.5;">
+                            <path d="M0 1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1zm4 0v6h8V1H4zm8 8H4v6h8V9zM1 1v2h2V1H1zm2 3H1v2h2V4zM1 7v2h2V7H1zm2 3H1v2h2v-2zm-2 3v2h2v-2H1zM15 1h-2v2h2V1zm-2 3v2h2V4h-2zm2 3h-2v2h2V7zm-2 3v2h2v-2h-2zm2 3h-2v2h2v-2zM6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
+                        </svg>
+                        <h4 style="font-weight: 600; margin-bottom: 10px;">No anime found</h4>
+                        <p style="margin-bottom: 15px; color: #6c757d;">@(string.IsNullOrEmpty(ViewBag.SearchAnime) ? "Start by adding your first anime!" : "Try a different search term")</p>
+                        @if (string.IsNullOrEmpty(ViewBag.SearchAnime))
+                        {
+                            <a asp-controller="Admin" asp-action="CreateAnime" class="btn btn-primary">Add Anime</a>
                         }
                         else
                         {
