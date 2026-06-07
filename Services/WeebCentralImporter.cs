@@ -307,11 +307,7 @@ namespace AnyComic.Services
             bodyText = Regex.Replace(bodyText, @"\s+", " ").Trim();
             Console.WriteLine($"  [meta] Body preview: {bodyText[..Math.Min(500, bodyText.Length)]}");
 
-            // Try flex <li> first, then all <li>, then flex <div>
-            var candidates =
-                doc.DocumentNode.SelectNodes("//li[contains(@class,'flex')]")
-                ?? doc.DocumentNode.SelectNodes("//li")
-                ?? doc.DocumentNode.SelectNodes("//div[contains(@class,'flex')]");
+            var candidates = doc.DocumentNode.SelectNodes("//li");
 
             if (candidates != null)
             {
