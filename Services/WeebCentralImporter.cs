@@ -77,12 +77,14 @@ namespace AnyComic.Services
                 var mangaDoc = new HtmlDocument();
                 mangaDoc.LoadHtml(mangaHtml);
 
-                var title       = ExtractTitle(mangaDoc)       ?? "Unknown Manga";
-                var author      = ExtractAuthor(mangaDoc)      ?? "Unknown";
-                var description = ExtractDescription(mangaDoc) ?? "Imported from WeebCentral";
+                var title       = ExtractTitle(mangaDoc) ?? "Unknown Manga";
                 var coverUrl    = ExtractCoverUrl(mangaDoc);
+                var detailMap   = ExtractDetailMap(mangaDoc);
+                var author      = ExtractAuthor(mangaDoc, detailMap)      ?? "Unknown";
+                var year        = ExtractYear(mangaDoc, detailMap);
+                var description = ExtractDescription(mangaDoc) ?? "Imported from WeebCentral";
 
-                Console.WriteLine($"Found manga: {title} by {author}");
+                Console.WriteLine($"Found manga: {title} by {author} ({year?.ToString() ?? "no year"})");
 
                 var allChapters = await GetFullChapterList(seriesId, url);
                 if (allChapters.Count == 0)
@@ -96,12 +98,16 @@ namespace AnyComic.Services
                 var selectedChapters = FilterChaptersByRange(allChapters, chapterRange);
                 Console.WriteLine($"Indexing {selectedChapters.Count} chapters...");
 
+                var dataCriacao = year.HasValue
+                    ? new DateTime(year.Value, 1, 1)
+                    : DateTime.Now;
+
                 var manga = new Manga
                 {
                     Titulo      = CleanTitle(title),
                     Autor       = author,
                     Descricao   = CleanDescription(description),
-                    DataCriacao = DateTime.Now,
+                    DataCriacao = dataCriacao,
                     ImagemCapa  = coverUrl ?? "/images/placeholder.jpg"
                 };
 
@@ -279,33 +285,135 @@ namespace AnyComic.Services
             return null;
         }
 
-        private static string? ExtractAuthor(HtmlDocument doc)
+        private static string? ExtractAuthor(HtmlDocument doc, Dictionary<string, string>? detailMap = null)
         {
-            var detailNodes = doc.DocumentNode.SelectNodes("//li[contains(@class, 'flex')]//span");
-            if (detailNodes != null)
+            detailMap ??= ExtractDetailMap(doc);
+            foreach (var label in new[] { "Author(s)", "Author" })
+                if (detailMap.TryGetValue(label, out var val)) return val;
+            return null;
+        }
+
+        /// <summary>
+        /// Returns a dictionary of all label→value pairs found in the details list.
+        /// WeebCentral uses a flex list of <li> elements where one child is the label
+        /// and another is the value (possibly inside an <a>).
+        /// Also dumps all found labels to the console to aid selector debugging.
+        /// </summary>
+        private static Dictionary<string, string> ExtractDetailMap(HtmlDocument doc)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            // WeebCentral details are <li class="flex ..."> children with label/value spans
+            var listItems = doc.DocumentNode.SelectNodes("//li[contains(@class,'flex')]")
+                         ?? doc.DocumentNode.SelectNodes("//ul//li");
+
+            if (listItems == null)
             {
-                foreach (var node in detailNodes)
-                {
-                    var text = node.InnerText.Trim();
-                    if (text == "Author(s)" || text == "Author")
-                    {
-                        var linkNode = node.ParentNode?.SelectSingleNode(".//a");
-                        if (linkNode != null)
-                            return HtmlEntity.DeEntitize(linkNode.InnerText.Trim());
-                    }
-                }
+                Console.WriteLine("  [meta] No detail list items found");
+                return map;
             }
+
+            foreach (var li in listItems)
+            {
+                var spans = li.SelectNodes(".//span");
+                if (spans == null || spans.Count < 1) continue;
+
+                var label = HtmlEntity.DeEntitize(spans[0].InnerText.Trim());
+                if (string.IsNullOrEmpty(label)) continue;
+
+                // Value: prefer the second span, then any <a> inside the li
+                string value = "";
+                if (spans.Count >= 2)
+                    value = HtmlEntity.DeEntitize(spans[1].InnerText.Trim());
+
+                if (string.IsNullOrEmpty(value))
+                {
+                    var link = li.SelectSingleNode(".//a");
+                    if (link != null)
+                        value = HtmlEntity.DeEntitize(link.InnerText.Trim());
+                }
+
+                if (!string.IsNullOrEmpty(value))
+                    map[label] = value;
+            }
+
+            Console.WriteLine($"  [meta] Detail map keys: {string.Join(", ", map.Keys)}");
+            return map;
+        }
+
+        private static string? FindDetailValue(Dictionary<string, string> map, params string[] labels)
+        {
+            foreach (var label in labels)
+                if (map.TryGetValue(label, out var val)) return val;
             return null;
         }
 
         private static string? ExtractDescription(HtmlDocument doc)
         {
+            // 1. og:description meta tag
             var ogDesc = doc.DocumentNode.SelectSingleNode("//meta[@property='og:description']");
             if (ogDesc != null)
             {
                 var content = ogDesc.GetAttributeValue("content", "");
-                if (!string.IsNullOrEmpty(content)) return HtmlEntity.DeEntitize(content);
+                if (!string.IsNullOrEmpty(content))
+                {
+                    Console.WriteLine($"  [meta] Description from og:description ({content.Length} chars)");
+                    return HtmlEntity.DeEntitize(content);
+                }
             }
+
+            // 2. Any <p> inside a section/div that looks like a synopsis
+            var synopsisSelectors = new[]
+            {
+                "//section[contains(@class,'description')]//p",
+                "//div[contains(@class,'description')]//p",
+                "//section[contains(@class,'synopsis')]//p",
+                "//div[contains(@class,'synopsis')]//p",
+                "//p[contains(@class,'description')]",
+                "//p[contains(@class,'synopsis')]",
+                // WeebCentral uses x-show for collapsible descriptions
+                "//*[@x-show]//p",
+                "//article//section//p",
+                "//main//p[string-length(.) > 50]",
+            };
+
+            foreach (var selector in synopsisSelectors)
+            {
+                var nodes = doc.DocumentNode.SelectNodes(selector);
+                if (nodes == null) continue;
+                var text = string.Join(" ", nodes.Select(n => HtmlEntity.DeEntitize(n.InnerText.Trim())))
+                                .Trim();
+                if (text.Length > 20)
+                {
+                    Console.WriteLine($"  [meta] Description from selector '{selector}' ({text.Length} chars)");
+                    return text;
+                }
+            }
+
+            Console.WriteLine("  [meta] Description not found");
+            return null;
+        }
+
+        private static int? ExtractYear(HtmlDocument doc, Dictionary<string, string>? detailMap = null)
+        {
+            detailMap ??= ExtractDetailMap(doc);
+            // Try the detail map first — common labels: "Year", "Published", "Release Year"
+            var yearStr = FindDetailValue(detailMap, "Year", "Published", "Release Year", "Release");
+            if (yearStr != null)
+            {
+                var m = Regex.Match(yearStr, @"\b(19|20)\d{2}\b");
+                if (m.Success && int.TryParse(m.Value, out int y)) return y;
+            }
+
+            // Fallback: any 4-digit year in the page text
+            var anyYear = doc.DocumentNode.SelectSingleNode(
+                "//span[contains(@class,'year')] | //td[contains(@class,'year')] | //li[contains(.,'Year')]");
+            if (anyYear != null)
+            {
+                var m = Regex.Match(anyYear.InnerText, @"\b(19|20)\d{2}\b");
+                if (m.Success && int.TryParse(m.Value, out int y)) return y;
+            }
+
             return null;
         }
 
