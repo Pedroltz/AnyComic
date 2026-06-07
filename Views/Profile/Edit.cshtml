@@ -188,15 +188,15 @@
 </style>
 
 <div class="edit-profile-wrap">
-    <h1 class="edit-profile-title">Editar Perfil</h1>
+    <h1 class="edit-profile-title">Edit Profile</h1>
 
     <form method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
 
         <!-- Banner -->
         <div class="form-group">
-            <label class="form-label">Imagem de Banner
-                <span style="font-weight:400;color:rgba(255,255,255,.25)">(4:1 — será cortada automaticamente, até 10 MB)</span>
+            <label class="form-label">Banner Image
+                <span style="font-weight:400;color:rgba(255,255,255,.25)">(4:1 — will be cropped automatically, up to 10 MB)</span>
             </label>
             <div class="banner-upload-zone @(!string.IsNullOrEmpty(Model.ImagemBannerAtual) ? "has-banner" : "")"
                  id="bannerZone" onclick="document.getElementById('bannerInput').click()">
@@ -212,10 +212,10 @@
                     <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
                     </svg>
-                    <p>Clique para escolher o banner</p>
+                    <p>Click to choose a banner</p>
                 </div>
                 <span class="banner-re-crop" onclick="event.stopPropagation(); document.getElementById('bannerInput').click()">
-                    Alterar / Recortar
+                    Change / Recrop
                 </span>
             </div>
             <input type="file" id="bannerInput" name="ImagemBanner" accept="image/*" />
@@ -227,7 +227,7 @@
 
         <!-- Avatar -->
         <div class="form-group">
-            <label class="form-label">Foto de Perfil <span style="font-weight:400;color:rgba(255,255,255,.25)">(até 5 MB)</span></label>
+            <label class="form-label">Profile Picture <span style="font-weight:400;color:rgba(255,255,255,.25)">(up to 5 MB)</span></label>
             <div class="avatar-row">
                 <div class="avatar-upload-zone @(!string.IsNullOrEmpty(Model.FotoPerfilAtual) ? "has-image" : "")"
                      id="avatarZone" onclick="document.getElementById('avatarInput').click()">
@@ -242,9 +242,9 @@
                     <span class="avatar-placeholder">+</span>
                 </div>
                 <div class="avatar-info">
-                    <strong>Foto de perfil</strong>
-                    JPG, PNG, WEBP ou GIF<br />
-                    Tamanho máximo: 5 MB
+                    <strong>Profile picture</strong>
+                    JPG, PNG, WEBP or GIF<br />
+                    Maximum size: 5 MB
                 </div>
             </div>
             <input type="file" id="avatarInput" name="FotoPerfil" accept="image/*" />
@@ -256,15 +256,15 @@
 
         <!-- Bio -->
         <div class="form-group">
-            <label class="form-label" for="Sobre">Sobre mim</label>
+            <label class="form-label" for="Sobre">About me</label>
             <textarea id="Sobre" name="Sobre" class="form-control-dark" maxlength="500"
-                      placeholder="Fale um pouco sobre você…" oninput="updateCharCount(this)">@Model.Sobre</textarea>
+                      placeholder="Tell us a bit about yourself…" oninput="updateCharCount(this)">@Model.Sobre</textarea>
             <p class="char-count" id="sobreCount">@((Model.Sobre ?? "").Length)/500</p>
         </div>
 
         <div class="btn-row">
-            <a href="@Url.Action("Index", "Profile", new { id = Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value })" class="btn-cancel">Cancelar</a>
-            <button type="submit" class="btn-save">Salvar</button>
+            <a href="@Url.Action("Index", "Profile", new { id = Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value })" class="btn-cancel">Cancel</a>
+            <button type="submit" class="btn-save">Save</button>
         </div>
     </form>
 </div>
@@ -274,8 +274,8 @@
     <div class="crop-box">
         <div class="crop-header">
             <div>
-                <p class="crop-header-title">Ajustar Banner</p>
-                <p class="crop-header-sub">Arraste para reposicionar · Use os cantos para redimensionar</p>
+                <p class="crop-header-title">Adjust Banner</p>
+                <p class="crop-header-sub">Drag to reposition · Use corners to resize</p>
             </div>
             <button class="crop-close" onclick="closeCrop()" aria-label="Fechar">&times;</button>
         </div>
@@ -283,10 +283,10 @@
             <img id="cropImg" src="" alt="" />
         </div>
         <div class="crop-footer">
-            <span class="crop-footer-hint">Proporção fixa 4:1 · Saída 1200×300 px</span>
+            <span class="crop-footer-hint">Fixed ratio 4:1 · Output 1200×300 px</span>
             <div class="crop-footer-btns">
-                <button class="btn-crop-cancel" type="button" onclick="closeCrop()">Cancelar</button>
-                <button class="btn-crop-confirm" type="button" id="btnCropConfirm" onclick="confirmCrop()">Cortar e Usar</button>
+                <button class="btn-crop-cancel" type="button" onclick="closeCrop()">Cancel</button>
+                <button class="btn-crop-confirm" type="button" id="btnCropConfirm" onclick="confirmCrop()">Crop and Use</button>
             </div>
         </div>
     </div>
@@ -343,7 +343,7 @@
         if (!bannerCropper) return;
         var btn = document.getElementById('btnCropConfirm');
         btn.disabled = true;
-        btn.textContent = 'A processar…';
+        btn.textContent = 'Processing…';
 
         bannerCropper.getCroppedCanvas({
             width: 1200,
@@ -371,7 +371,7 @@
             bannerCropper.destroy();
             bannerCropper = null;
             btn.disabled = false;
-            btn.textContent = 'Cortar e Usar';
+            btn.textContent = 'Crop and Use';
         }, 'image/jpeg', 0.92);
     }
 

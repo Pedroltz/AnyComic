@@ -88,7 +88,7 @@ namespace AnyComic.Controllers
                 var result = await SalvarImagem(vm.FotoPerfil, $"{userId}_avatar", 5 * 1024 * 1024);
                 if (result is null)
                 {
-                    ModelState.AddModelError("FotoPerfil", "Arquivo inválido. Use JPG, PNG, WEBP ou GIF até 5 MB.");
+                    ModelState.AddModelError("FotoPerfil", "Invalid file. Use JPG, PNG, WEBP or GIF up to 5 MB.");
                     vm.FotoPerfilAtual = usuario.FotoPerfil;
                     vm.ImagemBannerAtual = usuario.ImagemBanner;
                     return View(vm);
@@ -101,7 +101,7 @@ namespace AnyComic.Controllers
                 var result = await SalvarImagem(vm.ImagemBanner, $"{userId}_banner", 10 * 1024 * 1024);
                 if (result is null)
                 {
-                    ModelState.AddModelError("ImagemBanner", "Arquivo inválido. Use JPG, PNG, WEBP ou GIF até 10 MB.");
+                    ModelState.AddModelError("ImagemBanner", "Invalid file. Use JPG, PNG, WEBP or GIF up to 10 MB.");
                     vm.FotoPerfilAtual = usuario.FotoPerfil;
                     vm.ImagemBannerAtual = usuario.ImagemBanner;
                     return View(vm);

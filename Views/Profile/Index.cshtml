@@ -224,13 +224,13 @@
 
             @if (Model.IsOwnProfile)
             {
-                <a href="/Profile/Edit" class="btn-edit-profile">Editar Perfil</a>
+                <a href="/Profile/Edit" class="btn-edit-profile">Edit Profile</a>
             }
         </div>
 
         <div class="profile-hero-info">
             <h1 class="profile-name">@Model.Usuario.Nome</h1>
-            <span class="profile-joined">Membro desde @Model.Usuario.DataCriacao.ToString("MMM yyyy")</span>
+            <span class="profile-joined">Member since @Model.Usuario.DataCriacao.ToString("MMM yyyy")</span>
         </div>
     </div>
 
@@ -238,7 +238,7 @@
     @if (!string.IsNullOrWhiteSpace(Model.Usuario.Sobre))
     {
         <div class="profile-about">
-            <h3>Sobre</h3>
+            <h3>About</h3>
             <p>@Model.Usuario.Sobre</p>
         </div>
     }
@@ -246,7 +246,7 @@
     <!-- Manga Favorites -->
     <div class="profile-section">
         <p class="profile-section-title">
-            Mangás Favoritos
+            Favorite Manga
             <span class="count">@Model.FavoritosManga.Count</span>
         </p>
         @if (Model.FavoritosManga.Any())
@@ -263,14 +263,14 @@
         }
         else
         {
-            <p class="profile-empty">Nenhum mangá favorito ainda.</p>
+            <p class="profile-empty">No favorite manga yet.</p>
         }
     </div>
 
     <!-- Anime Favorites -->
     <div class="profile-section">
         <p class="profile-section-title">
-            Animes Favoritos
+            Favorite Anime
             <span class="count">@Model.FavoritosAnime.Count</span>
         </p>
         @if (Model.FavoritosAnime.Any())
@@ -287,7 +287,7 @@
         }
         else
         {
-            <p class="profile-empty">Nenhum anime favorito ainda.</p>
+            <p class="profile-empty">No favorite anime yet.</p>
         }
     </div>
 </div>
