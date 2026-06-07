@@ -2,6 +2,32 @@
    HotComics Style - AnyComic Theme
    ======================================== */
 
+/* ========================================
+   Mobile Page Transitions (slide between pages)
+   ======================================== */
+@media (max-width: 768px) {
+  body { overflow-x: hidden; }
+
+  main.page-enter {
+    animation: pageSlideIn 0.28s ease-out forwards;
+  }
+
+  main.page-exit {
+    animation: pageSlideOut 0.24s ease-in forwards;
+    pointer-events: none;
+  }
+
+  @keyframes pageSlideIn {
+    from { transform: translateX(100%); opacity: 0.85; }
+    to   { transform: translateX(0);    opacity: 1;    }
+  }
+
+  @keyframes pageSlideOut {
+    from { transform: translateX(0);    opacity: 1; }
+    to   { transform: translateX(-35%); opacity: 0; }
+  }
+}
+
 /* Reset & Base Styles */
 * {
   margin: 0;
