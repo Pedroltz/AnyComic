@@ -42,7 +42,7 @@ namespace AnyComic.Controllers
         /// <summary>
         /// GET: Admin/Index - Displays the administrative panel with Manga, Admins and Banners sections
         /// </summary>
-        public async Task<IActionResult> Index(string searchManga, string searchAdmin)
+        public async Task<IActionResult> Index(string searchManga, string searchAdmin, string searchAnime)
         {
             // Check administrator permissions
             if (!IsAdmin())
@@ -62,6 +62,18 @@ namespace AnyComic.Controllers
 
             var mangas = await mangasQuery.OrderByDescending(m => m.DataCriacao).ToListAsync();
 
+            // Search anime with search filter
+            var animesQuery = _context.Animes.Include(a => a.Episodios).AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchAnime))
+            {
+                animesQuery = animesQuery.Where(a =>
+                    a.Titulo.Contains(searchAnime) ||
+                    a.Autor.Contains(searchAnime));
+            }
+
+            var animes = await animesQuery.OrderByDescending(a => a.DataCriacao).ToListAsync();
+
             // Search admins with search filter
             var adminsQuery = _context.UsuariosAdmin.AsQueryable();
 
@@ -79,9 +91,11 @@ namespace AnyComic.Controllers
 
             // Pass data to view using ViewBag
             ViewBag.Mangas = mangas;
+            ViewBag.Animes = animes;
             ViewBag.Admins = admins;
             ViewBag.Banners = banners;
             ViewBag.SearchManga = searchManga;
+            ViewBag.SearchAnime = searchAnime;
             ViewBag.SearchAdmin = searchAdmin;
 
             return View();
@@ -118,55 +132,15 @@ namespace AnyComic.Controllers
 
             try
             {
-                var importer = new EHentaiImporter(_environment);
+                var importer = new EHentaiImporter();
                 var result = await importer.ImportFromUrl(request.Url);
 
                 if (result.HasValue)
                 {
                     var importedManga = result.Value.manga;
-                    var pagePaths = result.Value.pagePaths;
+                    var pageUrls = result.Value.pageUrls;
 
-                    // Copy first page to capas folder and set as cover
-                    if (pagePaths.Count > 0)
-                    {
-                        var firstPagePath = pagePaths[0];
-
-                        // Get the physical path of the first page
-                        var sourcePath = Path.Combine(_environment.WebRootPath, firstPagePath.TrimStart('/'));
-
-                        if (System.IO.File.Exists(sourcePath))
-                        {
-                            // Create capas directory if it doesn't exist
-                            var capasDir = Path.Combine(_environment.WebRootPath, "uploads", "capas");
-                            if (!Directory.Exists(capasDir))
-                            {
-                                Directory.CreateDirectory(capasDir);
-                            }
-
-                            // Create a unique filename for the cover
-                            var extension = Path.GetExtension(sourcePath);
-                            var coverFileName = $"{Guid.NewGuid()}_cover{extension}";
-                            var coverPath = Path.Combine(capasDir, coverFileName);
-
-                            // Copy the first page to capas folder
-                            System.IO.File.Copy(sourcePath, coverPath, true);
-
-                            // Set the cover path in the manga object
-                            importedManga.ImagemCapa = $"/uploads/capas/{coverFileName}";
-                        }
-                        else
-                        {
-                            // Fallback: use the first page path directly
-                            importedManga.ImagemCapa = firstPagePath;
-                        }
-                    }
-                    else
-                    {
-                        // If no pages were downloaded, use a default placeholder
-                        importedManga.ImagemCapa = "/uploads/capas/default.jpg";
-                    }
-
-                    // Save manga to database
+                    // Save manga (cover is already set to first page URL by the importer)
                     _context.Mangas.Add(importedManga);
                     await _context.SaveChangesAsync();
 
@@ -175,22 +149,21 @@ namespace AnyComic.Controllers
                     {
                         MangaId = importedManga.Id,
                         NumeroCapitulo = 1,
-                        NomeCapitulo = null, // Will display as "Chapter 1"
+                        NomeCapitulo = null,
                         DataCriacao = DateTime.Now
                     };
                     _context.Capitulos.Add(capitulo);
                     await _context.SaveChangesAsync();
 
-                    // Create page records in database, associated with the chapter
                     int pageNumber = 1;
-                    foreach (var pagePath in pagePaths)
+                    foreach (var pageUrl in pageUrls)
                     {
                         var paginaManga = new PaginaManga
                         {
                             MangaId = importedManga.Id,
                             CapituloId = capitulo.Id,
                             NumeroPagina = pageNumber++,
-                            CaminhoImagem = pagePath,
+                            CaminhoImagem = pageUrl,
                             DataUpload = DateTime.Now
                         };
                         _context.PaginasMangas.Add(paginaManga);
@@ -206,8 +179,8 @@ namespace AnyComic.Controllers
                         autor = importedManga.Autor,
                         descricao = importedManga.Descricao,
                         dataCriacao = importedManga.DataCriacao.ToString("yyyy-MM-dd"),
-                        totalPages = pagePaths.Count,
-                        message = $"Manga '{importedManga.Titulo}' imported successfully with {pagePaths.Count} pages!"
+                        totalPages = pageUrls.Count,
+                        message = $"Manga '{importedManga.Titulo}' imported successfully with {pageUrls.Count} pages!"
                     });
                 }
                 else
@@ -250,34 +223,32 @@ namespace AnyComic.Controllers
                     return Json(new { success = false, message = "Chapter not found" });
                 }
 
-                // Import pages using EHentaiImporter
-                var importer = new EHentaiImporter(_environment);
+                // Index pages using EHentaiImporter
+                var importer = new EHentaiImporter();
                 var result = await importer.ImportFromUrl(request.Url);
 
                 if (result.HasValue)
                 {
-                    var pagePaths = result.Value.pagePaths;
+                    var pageUrls = result.Value.pageUrls;
 
-                    if (pagePaths.Count == 0)
+                    if (pageUrls.Count == 0)
                     {
-                        return Json(new { success = false, message = "No pages were downloaded from the gallery" });
+                        return Json(new { success = false, message = "No pages were indexed from the gallery" });
                     }
 
-                    // Get the starting page number (continue from existing pages)
                     int startingPageNumber = capitulo.Paginas.Any()
                         ? capitulo.Paginas.Max(p => p.NumeroPagina) + 1
                         : 1;
 
-                    // Create page records in database, associated with the chapter
                     int pageNumber = startingPageNumber;
-                    foreach (var pagePath in pagePaths)
+                    foreach (var pageUrl in pageUrls)
                     {
                         var paginaManga = new PaginaManga
                         {
                             MangaId = capitulo.MangaId,
                             CapituloId = capitulo.Id,
                             NumeroPagina = pageNumber++,
-                            CaminhoImagem = pagePath,
+                            CaminhoImagem = pageUrl,
                             DataUpload = DateTime.Now
                         };
                         _context.PaginasMangas.Add(paginaManga);
@@ -290,8 +261,8 @@ namespace AnyComic.Controllers
                         success = true,
                         capituloId = capitulo.Id,
                         nomeCapitulo = capitulo.NomeExibicao,
-                        totalPages = pagePaths.Count,
-                        message = $"{pagePaths.Count} page(s) imported successfully to {capitulo.NomeExibicao}!"
+                        totalPages = pageUrls.Count,
+                        message = $"{pageUrls.Count} page(s) indexed successfully to {capitulo.NomeExibicao}!"
                     });
                 }
                 else
@@ -1251,6 +1222,429 @@ namespace AnyComic.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // ==================== Anime Management (mirrors Manga) ====================
+
+        /// <summary>
+        /// GET: Admin/CreateAnime - Displays the anime creation form (CREATE)
+        /// </summary>
+        public IActionResult CreateAnime()
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            return View();
+        }
+
+        /// <summary>
+        /// POST: Admin/CreateAnime - Processes the creation of a new anime (CREATE)
+        /// </summary>
+        /// <param name="anime">Anime object with form data</param>
+        /// <param name="imagemCapa">Cover image file (optional)</param>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateAnime(Anime anime, IFormFile? imagemCapa)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            if (ModelState.IsValid)
+            {
+                // If a cover image was uploaded, perform the upload
+                if (imagemCapa != null && imagemCapa.Length > 0)
+                {
+                    // Generate unique name to avoid conflicts
+                    var fileName = $"{Guid.NewGuid()}_{imagemCapa.FileName}";
+                    var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "capas");
+
+                    // Create directory if it doesn't exist
+                    if (!Directory.Exists(uploadsDir))
+                    {
+                        Directory.CreateDirectory(uploadsDir);
+                    }
+
+                    var filePath = Path.Combine(uploadsDir, fileName);
+
+                    // Save file to server
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await imagemCapa.CopyToAsync(stream);
+                    }
+
+                    // Set relative path to store in database
+                    anime.ImagemCapa = $"/uploads/capas/{fileName}";
+                }
+
+                _context.Animes.Add(anime);
+                await _context.SaveChangesAsync();
+
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(anime);
+        }
+
+        /// <summary>
+        /// GET: Admin/EditAnime/5 - Displays the anime editing form (UPDATE)
+        /// </summary>
+        /// <param name="id">ID of the anime to be edited</param>
+        public async Task<IActionResult> EditAnime(int? id)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var anime = await _context.Animes.FindAsync(id);
+            if (anime == null)
+            {
+                return NotFound();
+            }
+
+            return View(anime);
+        }
+
+        /// <summary>
+        /// POST: Admin/EditAnime/5 - Processes the update of an anime (UPDATE)
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditAnime(int id, [Bind("Id,Titulo,Autor,Descricao,ImagemCapa,DataCriacao")] Anime anime, IFormFile? imagemCapa)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            if (id != anime.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    // If a new image was uploaded, process the upload
+                    if (imagemCapa != null && imagemCapa.Length > 0)
+                    {
+                        // Delete old image if it exists
+                        if (!string.IsNullOrEmpty(anime.ImagemCapa))
+                        {
+                            var oldImagePath = Path.Combine(_environment.WebRootPath, anime.ImagemCapa.TrimStart('/'));
+                            if (System.IO.File.Exists(oldImagePath))
+                            {
+                                System.IO.File.Delete(oldImagePath);
+                            }
+                        }
+
+                        var fileName = $"{Guid.NewGuid()}_{imagemCapa.FileName}";
+                        var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "capas");
+
+                        // Create directory if it doesn't exist
+                        if (!Directory.Exists(uploadsDir))
+                        {
+                            Directory.CreateDirectory(uploadsDir);
+                        }
+
+                        var filePath = Path.Combine(uploadsDir, fileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await imagemCapa.CopyToAsync(stream);
+                        }
+
+                        anime.ImagemCapa = $"/uploads/capas/{fileName}";
+                    }
+                    // If there's no new image, anime.ImagemCapa already contains the correct value from hidden field
+
+                    _context.Update(anime);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!AnimeExists(anime.Id))
+                    {
+                        return NotFound();
+                    }
+                    throw;
+                }
+
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(anime);
+        }
+
+        // GET: Admin/DeleteAnime/5
+        public async Task<IActionResult> DeleteAnime(int? id)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var anime = await _context.Animes
+                .Include(a => a.Episodios)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (anime == null)
+            {
+                return NotFound();
+            }
+
+            return View(anime);
+        }
+
+        // POST: Admin/DeleteAnime/5
+        [HttpPost, ActionName("DeleteAnime")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAnimeConfirmed(int id)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            var anime = await _context.Animes
+                .Include(a => a.Episodios)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (anime != null)
+            {
+                // Delete cover
+                if (!string.IsNullOrEmpty(anime.ImagemCapa))
+                {
+                    var capaPath = Path.Combine(_environment.WebRootPath, anime.ImagemCapa.TrimStart('/'));
+                    if (System.IO.File.Exists(capaPath))
+                    {
+                        System.IO.File.Delete(capaPath);
+                    }
+                }
+
+                // Episodes are removed via cascade delete
+                _context.Animes.Remove(anime);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // ==================== Episode Management ====================
+
+        // GET: Admin/ManageEpisodios/5
+        public async Task<IActionResult> ManageEpisodios(int? id)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var anime = await _context.Animes
+                .Include(a => a.Episodios.OrderBy(e => e.NumeroEpisodio))
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (anime == null)
+            {
+                return NotFound();
+            }
+
+            return View(anime);
+        }
+
+        // POST: Admin/CreateEpisodio
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateEpisodio(int animeId, string? nomeEpisodio, string? linkVideo, DateTime? dataLancamento, IFormFile? videoFile)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            var anime = await _context.Animes.Include(a => a.Episodios).FirstOrDefaultAsync(a => a.Id == animeId);
+            if (anime == null)
+            {
+                return NotFound();
+            }
+
+            string resolvedLink = linkVideo?.Trim() ?? string.Empty;
+
+            if (videoFile != null && videoFile.Length > 0)
+            {
+                var allowedExtensions = new[] { ".mp4", ".webm", ".mkv", ".avi", ".mov", ".m4v" };
+                var extension = Path.GetExtension(videoFile.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    TempData["Error"] = "Invalid video format. Allowed: mp4, webm, mkv, avi, mov, m4v.";
+                    return RedirectToAction(nameof(ManageEpisodios), new { id = animeId });
+                }
+
+                var animeFolderName = SanitizeFolderName(anime.Titulo);
+                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "episodios", animeFolderName);
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                var fileName = $"{Guid.NewGuid()}_{videoFile.FileName}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await videoFile.CopyToAsync(stream);
+                }
+
+                resolvedLink = $"/uploads/episodios/{animeFolderName}/{fileName}";
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedLink))
+            {
+                TempData["Error"] = "Please provide a video file or a video link.";
+                return RedirectToAction(nameof(ManageEpisodios), new { id = animeId });
+            }
+
+            var proximoNumero = anime.Episodios.Any() ? anime.Episodios.Max(e => e.NumeroEpisodio) + 1 : 1;
+
+            var episodio = new Episodio
+            {
+                AnimeId = animeId,
+                NumeroEpisodio = proximoNumero,
+                NomeEpisodio = string.IsNullOrWhiteSpace(nomeEpisodio) ? null : nomeEpisodio.Trim(),
+                LinkVideo = resolvedLink,
+                DataLancamento = dataLancamento ?? DateTime.Now,
+                DataCriacao = DateTime.Now
+            };
+
+            _context.Episodios.Add(episodio);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"Episode {proximoNumero} created successfully!";
+            return RedirectToAction(nameof(ManageEpisodios), new { id = animeId });
+        }
+
+        // POST: Admin/EditEpisodio
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditEpisodio(int id, string? nomeEpisodio, string? linkVideo, DateTime? dataLancamento, IFormFile? videoFile)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            var episodio = await _context.Episodios.Include(e => e.Anime).FirstOrDefaultAsync(e => e.Id == id);
+            if (episodio == null)
+            {
+                return NotFound();
+            }
+
+            string resolvedLink = linkVideo?.Trim() ?? string.Empty;
+
+            if (videoFile != null && videoFile.Length > 0)
+            {
+                var allowedExtensions = new[] { ".mp4", ".webm", ".mkv", ".avi", ".mov", ".m4v" };
+                var extension = Path.GetExtension(videoFile.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    TempData["Error"] = "Invalid video format. Allowed: mp4, webm, mkv, avi, mov, m4v.";
+                    return RedirectToAction(nameof(ManageEpisodios), new { id = episodio.AnimeId });
+                }
+
+                // Delete old file if it was an upload
+                if (!string.IsNullOrEmpty(episodio.LinkVideo) && episodio.LinkVideo.StartsWith("/uploads/episodios/"))
+                {
+                    var oldPath = Path.Combine(_environment.WebRootPath, episodio.LinkVideo.TrimStart('/'));
+                    if (System.IO.File.Exists(oldPath))
+                    {
+                        System.IO.File.Delete(oldPath);
+                    }
+                }
+
+                var animeFolderName = SanitizeFolderName(episodio.Anime!.Titulo);
+                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "episodios", animeFolderName);
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                var fileName = $"{Guid.NewGuid()}_{videoFile.FileName}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await videoFile.CopyToAsync(stream);
+                }
+
+                resolvedLink = $"/uploads/episodios/{animeFolderName}/{fileName}";
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedLink))
+            {
+                TempData["Error"] = "Please provide a video file or a video link.";
+                return RedirectToAction(nameof(ManageEpisodios), new { id = episodio.AnimeId });
+            }
+
+            episodio.NomeEpisodio = string.IsNullOrWhiteSpace(nomeEpisodio) ? null : nomeEpisodio.Trim();
+            episodio.LinkVideo = resolvedLink;
+            if (dataLancamento.HasValue)
+            {
+                episodio.DataLancamento = dataLancamento.Value;
+            }
+
+            _context.Update(episodio);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Episode updated successfully!";
+            return RedirectToAction(nameof(ManageEpisodios), new { id = episodio.AnimeId });
+        }
+
+        // POST: Admin/DeleteEpisodio
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteEpisodio(int id)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("AccessDenied", "Account");
+            }
+
+            var episodio = await _context.Episodios.FindAsync(id);
+            if (episodio == null)
+            {
+                return NotFound();
+            }
+
+            var animeId = episodio.AnimeId;
+
+            _context.Episodios.Remove(episodio);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Episode deleted successfully!";
+            return RedirectToAction(nameof(ManageEpisodios), new { id = animeId });
+        }
+
+        private bool AnimeExists(int id)
+        {
+            return _context.Animes.Any(e => e.Id == id);
+        }
+
         private bool MangaExists(int id)
         {
             return _context.Mangas.Any(e => e.Id == id);
@@ -1314,7 +1708,7 @@ namespace AnyComic.Controllers
 
             try
             {
-                var importer = new MangaDexImporter(_environment);
+                var importer = new MangaDexImporter();
                 var result = await importer.ImportFromUrl(
                     request.Url,
                     request.Language ?? "en",
@@ -1329,7 +1723,7 @@ namespace AnyComic.Controllers
 
                     if (chapters.Count == 0)
                     {
-                        return Json(new { success = false, message = "No chapters were successfully downloaded" });
+                        return Json(new { success = false, message = "No chapters were successfully indexed" });
                     }
 
                     // Save manga to database
@@ -1361,7 +1755,7 @@ namespace AnyComic.Controllers
 
                         // Create pages for this chapter
                         int pageNumber = 1;
-                        foreach (var pagePath in chapterData.PagePaths)
+                        foreach (var pagePath in chapterData.PageUrls)
                         {
                             var paginaManga = new PaginaManga
                             {
@@ -1376,8 +1770,8 @@ namespace AnyComic.Controllers
 
                         await _context.SaveChangesAsync();
 
-                        totalPages += chapterData.PagePaths.Count;
-                        chapterSummaries.Add($"Chapter {chapterData.ChapterNumber}: {chapterData.PagePaths.Count} pages");
+                        totalPages += chapterData.PageUrls.Count;
+                        chapterSummaries.Add($"Chapter {chapterData.ChapterNumber}: {chapterData.PageUrls.Count} pages");
                     }
 
                     return Json(new
@@ -1422,7 +1816,7 @@ namespace AnyComic.Controllers
 
             try
             {
-                var importer = new MangaLivreImporter(_environment);
+                var importer = new MangaLivreImporter();
                 var result = await importer.ImportFromUrl(
                     request.Url,
                     request.ChapterRange ?? "all"
@@ -1435,7 +1829,7 @@ namespace AnyComic.Controllers
 
                     if (chapters.Count == 0)
                     {
-                        return Json(new { success = false, message = "No chapters were successfully downloaded" });
+                        return Json(new { success = false, message = "No chapters were successfully indexed" });
                     }
 
                     // Save manga to database
@@ -1464,7 +1858,7 @@ namespace AnyComic.Controllers
                         await _context.SaveChangesAsync();
 
                         int pageNumber = 1;
-                        foreach (var pagePath in chapterData.PagePaths)
+                        foreach (var pagePath in chapterData.PageUrls)
                         {
                             var paginaManga = new PaginaManga
                             {
@@ -1479,8 +1873,8 @@ namespace AnyComic.Controllers
 
                         await _context.SaveChangesAsync();
 
-                        totalPages += chapterData.PagePaths.Count;
-                        chapterSummaries.Add($"Chapter {chapterData.ChapterNumber}: {chapterData.PagePaths.Count} pages");
+                        totalPages += chapterData.PageUrls.Count;
+                        chapterSummaries.Add($"Chapter {chapterData.ChapterNumber}: {chapterData.PageUrls.Count} pages");
                     }
 
                     return Json(new
@@ -1525,7 +1919,7 @@ namespace AnyComic.Controllers
 
             try
             {
-                var importer = new WeebCentralImporter(_environment, request.ProxyUrl);
+                var importer = new WeebCentralImporter(request.ProxyUrl);
                 var result = await importer.ImportFromUrl(
                     request.Url,
                     request.ChapterRange ?? "all"
@@ -1538,7 +1932,7 @@ namespace AnyComic.Controllers
 
                     if (chapters.Count == 0)
                     {
-                        return Json(new { success = false, message = "No chapters were successfully downloaded" });
+                        return Json(new { success = false, message = "No chapters were successfully indexed" });
                     }
 
                     // Save manga to database
@@ -1548,13 +1942,10 @@ namespace AnyComic.Controllers
                     int totalPages = 0;
                     var chapterSummaries = new List<string>();
 
-                    // Create chapters and pages in database
                     foreach (var chapterData in chapters)
                     {
                         if (!decimal.TryParse(chapterData.ChapterNumber, out decimal chapterNum))
-                        {
                             chapterNum = 0;
-                        }
 
                         var capitulo = new Capitulo
                         {
@@ -1567,14 +1958,14 @@ namespace AnyComic.Controllers
                         await _context.SaveChangesAsync();
 
                         int pageNumber = 1;
-                        foreach (var pagePath in chapterData.PagePaths)
+                        foreach (var pageUrl in chapterData.PageUrls)
                         {
                             var paginaManga = new PaginaManga
                             {
                                 MangaId = importedManga.Id,
                                 CapituloId = capitulo.Id,
                                 NumeroPagina = pageNumber++,
-                                CaminhoImagem = pagePath,
+                                CaminhoImagem = pageUrl,
                                 DataUpload = DateTime.Now
                             };
                             _context.PaginasMangas.Add(paginaManga);
@@ -1582,8 +1973,8 @@ namespace AnyComic.Controllers
 
                         await _context.SaveChangesAsync();
 
-                        totalPages += chapterData.PagePaths.Count;
-                        chapterSummaries.Add($"Chapter {chapterData.ChapterNumber}: {chapterData.PagePaths.Count} pages");
+                        totalPages += chapterData.PageUrls.Count;
+                        chapterSummaries.Add($"Chapter {chapterData.ChapterNumber}: {chapterData.PageUrls.Count} pages");
                     }
 
                     return Json(new

@@ -177,7 +177,7 @@ namespace AnyComic.Controllers
             {
                 pagina = p.NumeroPagina,
                 index = index + 1,
-                imagem = p.CaminhoImagem
+                imagem = EnsureProxied(p.CaminhoImagem)
             }).ToList();
 
             // Determine next/previous chapters
@@ -190,6 +190,7 @@ namespace AnyComic.Controllers
 
             ViewBag.TotalPaginas = paginasDoCapitulo.Count;
             ViewBag.PaginaAtual = paginaAtual.NumeroPagina;
+            ViewBag.PaginaImagemUrl = EnsureProxied(paginaAtual.CaminhoImagem);
             ViewBag.MangaId = manga.Id;
             ViewBag.MangaTitulo = manga.Titulo;
             ViewBag.CapituloAtual = capituloAtual;
@@ -267,6 +268,21 @@ namespace AnyComic.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        /// <summary>
+        /// Wraps external CDN image URLs through the local proxy so hotlink protection is bypassed.
+        /// Leaves local paths and already-proxied URLs untouched.
+        /// </summary>
+        private static string EnsureProxied(string url)
+        {
+            if (string.IsNullOrEmpty(url) || url.StartsWith("/Proxy/") || url.StartsWith("/uploads/") || url.StartsWith("/images/"))
+                return url;
+
+            if (url.StartsWith("https://uploads.mangadex.org") || url.StartsWith("http://uploads.mangadex.org"))
+                return $"/Proxy/Image?url={Uri.EscapeDataString(url)}";
+
+            return url;
         }
     }
 }
