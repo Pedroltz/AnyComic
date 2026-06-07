@@ -65,7 +65,6 @@ namespace AnyComic.Controllers
 
             return View(new EditarPerfilViewModel
             {
-                Nome = usuario.Nome,
                 Sobre = usuario.Sobre,
                 FotoPerfilAtual = usuario.FotoPerfil,
                 ImagemBannerAtual = usuario.ImagemBanner
@@ -92,7 +91,6 @@ namespace AnyComic.Controllers
                     ModelState.AddModelError("FotoPerfil", "Arquivo inválido. Use JPG, PNG, WEBP ou GIF até 5 MB.");
                     vm.FotoPerfilAtual = usuario.FotoPerfil;
                     vm.ImagemBannerAtual = usuario.ImagemBanner;
-                    vm.Nome = usuario.Nome;
                     return View(vm);
                 }
                 usuario.FotoPerfil = result;
@@ -106,7 +104,6 @@ namespace AnyComic.Controllers
                     ModelState.AddModelError("ImagemBanner", "Arquivo inválido. Use JPG, PNG, WEBP ou GIF até 10 MB.");
                     vm.FotoPerfilAtual = usuario.FotoPerfil;
                     vm.ImagemBannerAtual = usuario.ImagemBanner;
-                    vm.Nome = usuario.Nome;
                     return View(vm);
                 }
                 usuario.ImagemBanner = result;

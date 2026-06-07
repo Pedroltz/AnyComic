@@ -15,6 +15,5 @@ namespace AnyComic.Models.ViewModels
         public IFormFile? ImagemBanner { get; set; }
         public string? FotoPerfilAtual { get; set; }
         public string? ImagemBannerAtual { get; set; }
-        public string Nome { get; set; } = "";
     }
 }
