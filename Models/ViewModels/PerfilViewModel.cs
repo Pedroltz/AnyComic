@@ -8,6 +8,10 @@ namespace AnyComic.Models.ViewModels
         public List<Favorito> FavoritosManga { get; set; } = new();
         public List<FavoritoAnime> FavoritosAnime { get; set; } = new();
         public bool IsOwnProfile { get; set; }
+
+        // Reviews written by the user — only populated for their own profile
+        public List<ReviewManga> ReviewsManga { get; set; } = new();
+        public List<ReviewAnime> ReviewsAnime { get; set; } = new();
     }
 
     public class EditarPerfilViewModel

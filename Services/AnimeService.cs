@@ -64,6 +64,13 @@ public class AnimeService(ApplicationDbContext context) : IAnimeService
             && await context.FavoritosAnime
                 .AnyAsync(f => f.UsuarioId == userId.Value && f.AnimeId == animeId);
 
+        var reviews = await context.ReviewsAnime
+            .Include(r => r.Usuario)
+            .Include(r => r.Replies).ThenInclude(rep => rep.Usuario)
+            .Where(r => r.AnimeId == animeId)
+            .OrderByDescending(r => r.DataAtualizacao ?? r.DataCriacao)
+            .ToListAsync();
+
         return new AnimeDetailsViewModel
         {
             Anime            = anime,
@@ -72,8 +79,126 @@ public class AnimeService(ApplicationDbContext context) : IAnimeService
             ProximoEpisodio  = proximo,
             EpisodioAnterior = anterior,
             IsFavorito       = isFavorito,
-            Player           = ResolvePlayer(episodioAtual)
+            Player           = ResolvePlayer(episodioAtual),
+            Reviews          = BuildReviewsSection(reviews, userId, animeId)
         };
+    }
+
+    private static ReviewsSectionViewModel BuildReviewsSection(List<ReviewAnime> reviews, int? currentUserId, int animeId)
+    {
+        var items = reviews.Select(r => new ReviewItemViewModel
+        {
+            ReviewId    = r.Id,
+            UsuarioId   = r.UsuarioId,
+            UsuarioNome = r.Usuario?.Nome ?? "User",
+            UsuarioFoto = r.Usuario?.FotoPerfil,
+            Nota        = r.Nota,
+            Texto       = r.Texto,
+            Data        = r.DataAtualizacao ?? r.DataCriacao,
+            Editado     = r.DataAtualizacao != null,
+            Replies     = r.Replies
+                .OrderBy(rep => rep.DataCriacao)
+                .Select(rep => new ReviewReplyItemViewModel
+                {
+                    Id          = rep.Id,
+                    UsuarioId   = rep.UsuarioId,
+                    UsuarioNome = rep.Usuario?.Nome ?? "User",
+                    UsuarioFoto = rep.Usuario?.FotoPerfil,
+                    Texto       = rep.Texto,
+                    Data        = rep.DataAtualizacao ?? rep.DataCriacao,
+                    Editado     = rep.DataAtualizacao != null
+                }).ToList()
+        }).ToList();
+
+        return new ReviewsSectionViewModel
+        {
+            Controller      = "Anime",
+            WorkId          = animeId,
+            Reviews         = items,
+            UserReview      = currentUserId.HasValue ? items.FirstOrDefault(i => i.UsuarioId == currentUserId.Value) : null,
+            IsAuthenticated = currentUserId.HasValue,
+            CurrentUserId   = currentUserId
+        };
+    }
+
+    public async Task AddReviewAsync(int animeId, int userId, int nota, string texto)
+    {
+        if (nota < 1 || nota > 5 || string.IsNullOrWhiteSpace(texto))
+            return;
+
+        texto = texto.Trim();
+        if (texto.Length > 2000) texto = texto[..2000];
+
+        var review = await context.ReviewsAnime
+            .FirstOrDefaultAsync(r => r.UsuarioId == userId && r.AnimeId == animeId);
+
+        if (review == null)
+        {
+            context.ReviewsAnime.Add(new ReviewAnime
+            {
+                UsuarioId   = userId,
+                AnimeId     = animeId,
+                Nota        = nota,
+                Texto       = texto,
+                DataCriacao = DateTime.Now
+            });
+        }
+        else
+        {
+            review.Nota            = nota;
+            review.Texto           = texto;
+            review.DataAtualizacao = DateTime.Now;
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    public async Task DeleteReviewAsync(int animeId, int userId)
+    {
+        var review = await context.ReviewsAnime
+            .FirstOrDefaultAsync(r => r.UsuarioId == userId && r.AnimeId == animeId);
+
+        if (review != null)
+        {
+            context.ReviewsAnime.Remove(review);
+            await context.SaveChangesAsync();
+        }
+    }
+
+    public async Task AddReplyAsync(int animeId, int reviewId, int userId, string texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return;
+
+        texto = texto.Trim();
+        if (texto.Length > 2000) texto = texto[..2000];
+
+        var reviewExists = await context.ReviewsAnime
+            .AnyAsync(r => r.Id == reviewId && r.AnimeId == animeId);
+
+        if (reviewExists)
+        {
+            context.ReviewRepliesAnime.Add(new ReviewReplyAnime
+            {
+                ReviewId    = reviewId,
+                UsuarioId   = userId,
+                Texto       = texto,
+                DataCriacao = DateTime.Now
+            });
+            await context.SaveChangesAsync();
+        }
+    }
+
+    public async Task DeleteReplyAsync(int replyId, int userId)
+    {
+        var reply = await context.ReviewRepliesAnime
+            .FirstOrDefaultAsync(r => r.Id == replyId && r.UsuarioId == userId);
+
+        if (reply != null)
+        {
+            context.ReviewRepliesAnime.Remove(reply);
+            await context.SaveChangesAsync();
+        }
     }
 
     public async Task<IReadOnlyList<FavoritoAnime>> GetFavoritosAsync(int userId)

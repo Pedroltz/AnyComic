@@ -1323,6 +1323,7 @@ textarea.form-control:focus {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border-color);
+  position: relative;
 }
 
 .chapter-item {
@@ -1334,6 +1335,70 @@ textarea.form-control:focus {
   text-decoration: none !important;
   color: inherit !important;
   gap: 14px;
+}
+
+/* Collapsed chapter list — hide overflow chapters behind the "Show more" toggle */
+.chapter-list-collapsed .chapter-extra {
+  display: none;
+}
+
+/* Smoky fade over the last visible chapters, hinting there's more below */
+.chapter-list-collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 110px;
+  background: linear-gradient(to bottom, rgba(26, 26, 26, 0) 0%, var(--bg-darker) 82%);
+  pointer-events: none;
+}
+
+/* Toggle button */
+.chapter-toggle-wrap {
+  text-align: center;
+  padding: 16px;
+}
+
+/* When collapsed, pull the button up so it floats on top of the fade */
+.chapter-list-collapsed + .chapter-toggle-wrap {
+  position: relative;
+  z-index: 2;
+  margin-top: -62px;
+  padding: 0 16px 8px;
+}
+
+.chapter-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 auto;
+  padding: 9px 22px;
+  border-radius: 22px;
+  border: 1px solid var(--border-color);
+  background: rgba(26, 26, 26, 0.85);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  color: var(--primary-red-light);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.chapter-toggle-btn:hover {
+  background: var(--primary-red);
+  border-color: var(--primary-red);
+  color: #fff;
+}
+
+.chapter-toggle-chevron {
+  transition: transform 0.25s ease;
+}
+
+.chapter-toggle-btn.expanded .chapter-toggle-chevron {
+  transform: rotate(180deg);
 }
 
 .chapter-item:last-child {
@@ -1995,6 +2060,54 @@ textarea.form-control:focus {
   color: var(--text-primary, #e0e0e0);
 }
 
+/* ========================================
+   Header profile avatar (desktop + mobile)
+   ======================================== */
+
+/* Desktop navbar dropdown toggle */
+.nav-profile-toggle {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-light);
+}
+
+.nav-avatar-ph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-red);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Mobile bottom-nav avatar (replaces the person icon) */
+.mobile-nav-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Mobile profile popup header avatar */
+.mobile-profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .mobile-profile-actions {
   padding: 6px;
 }
@@ -2023,6 +2136,472 @@ textarea.form-control:focus {
 
 .mobile-profile-action-danger {
   color: #ef2c2f;
+}
+
+/* ========================================
+   Reviews section (manga & anime details)
+   ======================================== */
+.reviews-section {
+  margin: 36px 0 20px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border-color);
+}
+
+.reviews-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.reviews-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.reviews-count {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 2px 10px;
+  color: var(--text-muted);
+}
+
+/* Write / edit form */
+.review-form {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.review-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.review-form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Star rating input — reverse order so hover/checked fills left-to-right */
+.star-input {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  gap: 2px;
+}
+
+.star-input input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.star-input label {
+  font-size: 26px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.star-input label:hover,
+.star-input label:hover ~ label,
+.star-input input:checked ~ label {
+  color: #f5a623;
+}
+
+.star-input label:active {
+  transform: scale(1.15);
+}
+
+.review-textarea {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px;
+  resize: vertical;
+  min-height: 76px;
+}
+
+.review-textarea:focus {
+  outline: none;
+  border-color: var(--primary-red);
+}
+
+.review-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.review-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.review-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.review-btn-primary {
+  background: var(--primary-red);
+  color: #fff;
+}
+
+.review-btn-primary:hover {
+  background: var(--primary-red-dark);
+}
+
+.review-btn-danger {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.review-btn-danger:hover {
+  border-color: var(--primary-red);
+  color: var(--primary-red-light);
+}
+
+.review-signin {
+  display: inline-block;
+  margin-bottom: 24px;
+  padding: 11px 22px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.review-signin:hover {
+  border-color: var(--primary-red);
+  color: var(--primary-red-light);
+}
+
+/* Review list */
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.review-card {
+  display: flex;
+  gap: 12px;
+}
+
+.review-avatar-link {
+  flex-shrink: 0;
+}
+
+.review-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-light);
+}
+
+.review-avatar-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-red);
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.review-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.review-author {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.review-author:hover {
+  color: var(--primary-red-light);
+}
+
+.review-stars {
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.review-stars .rv-star-on {
+  color: #f5a623;
+}
+
+.review-stars .rv-star-off {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.review-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.review-text {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.review-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+/* Edit own review (collapsible via <details>) */
+.review-edit {
+  margin-top: 10px;
+}
+
+.review-edit-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  width: fit-content;
+  user-select: none;
+}
+
+.review-edit-summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-edit-summary::before {
+  content: '\270E';
+  font-size: 13px;
+}
+
+.review-edit-summary:hover {
+  color: var(--primary-red-light);
+}
+
+.review-edit[open] .review-edit-summary {
+  margin-bottom: 10px;
+}
+
+.review-edit-form {
+  max-width: 560px;
+}
+
+/* ── Replies ──────────────────────────────────────────────────────────── */
+.reply-list {
+  margin: 12px 0 2px;
+  padding-left: 16px;
+  border-left: 2px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reply-card {
+  display: flex;
+  gap: 10px;
+}
+
+.reply-avatar-link {
+  flex-shrink: 0;
+}
+
+.reply-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-light);
+}
+
+.reply-avatar-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.reply-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.reply-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.reply-author:hover {
+  color: var(--primary-red-light);
+}
+
+.reply-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.reply-delete-form {
+  margin: 0 0 0 auto;
+}
+
+.reply-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.reply-delete:hover {
+  color: var(--primary-red-light);
+}
+
+.reply-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Reply composer (collapsible via <details>) */
+.reply-add {
+  margin-top: 2px;
+}
+
+.reply-add-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-red-light);
+  width: fit-content;
+  user-select: none;
+}
+
+.reply-add-summary::-webkit-details-marker {
+  display: none;
+}
+
+.reply-add-summary::before {
+  content: '\21A9';
+  font-size: 13px;
+}
+
+.reply-add[open] .reply-add-summary {
+  margin-bottom: 8px;
+}
+
+.reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 560px;
+}
+
+.reply-textarea {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  resize: vertical;
+  min-height: 56px;
+}
+
+.reply-textarea:focus {
+  outline: none;
+  border-color: var(--primary-red);
+}
+
+.reply-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.reply-submit {
+  align-self: flex-start;
+  padding: 7px 18px;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .review-date {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .star-input label {
+    font-size: 30px;
+  }
 }
 
 .mobile-profile-action-danger:hover {

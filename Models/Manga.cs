@@ -67,5 +67,11 @@ namespace AnyComic.Models
         /// N:N relationship through the Favoritos table
         /// </summary>
         public ICollection<Favorito> Favoritos { get; set; } = new List<Favorito>();
+
+        /// <summary>
+        /// Collection of user reviews left on this manga
+        /// 1:N relationship (one manga has many reviews)
+        /// </summary>
+        public ICollection<ReviewManga> Reviews { get; set; } = new List<ReviewManga>();
     }
 }

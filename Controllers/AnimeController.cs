@@ -57,6 +57,34 @@ public class AnimeController(IAnimeService animeService) : Controller
             : RedirectToAction(nameof(Details), new { id });
     }
 
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddReview(int animeId, int nota, string texto)
+    {
+        await animeService.AddReviewAsync(animeId, GetUserId()!.Value, nota, texto);
+        return RedirectToAction(nameof(Details), new { id = animeId });
+    }
+
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteReview(int animeId)
+    {
+        await animeService.DeleteReviewAsync(animeId, GetUserId()!.Value);
+        return RedirectToAction(nameof(Details), new { id = animeId });
+    }
+
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddReply(int animeId, int reviewId, string texto)
+    {
+        await animeService.AddReplyAsync(animeId, reviewId, GetUserId()!.Value, texto);
+        return RedirectToAction(nameof(Details), new { id = animeId });
+    }
+
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteReply(int animeId, int replyId)
+    {
+        await animeService.DeleteReplyAsync(replyId, GetUserId()!.Value);
+        return RedirectToAction(nameof(Details), new { id = animeId });
+    }
+
     private int? GetUserId()
     {
         var claim = User.FindFirst(ClaimTypes.NameIdentifier);

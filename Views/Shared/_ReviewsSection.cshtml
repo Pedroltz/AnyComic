@@ -1,0 +1,185 @@
+@model AnyComic.Models.ViewModels.ReviewsSectionViewModel
+@{
+    // The review actions take a controller-specific id parameter name.
+    var idParam = Model.Controller == "Manga" ? "mangaId" : "animeId";
+}
+
+@functions {
+    // Renders 5 stars, filled up to the given rating.
+    string Stars(int nota)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (var i = 1; i <= 5; i++)
+        {
+            sb.Append("<span class=\"rv-star ");
+            sb.Append(i <= nota ? "rv-star-on" : "rv-star-off");
+            sb.Append("\">&#9733;</span>");
+        }
+        return sb.ToString();
+    }
+}
+
+<div class="reviews-section">
+    <div class="reviews-header">
+        <h3 class="reviews-title">Reviews</h3>
+        <span class="reviews-count">@Model.Reviews.Count</span>
+    </div>
+
+    @* ── Write a review — only when signed in and without a review yet ─────── *@
+    @if (!Model.IsAuthenticated)
+    {
+        <a asp-controller="Account" asp-action="Login" class="review-signin">
+            Sign in to leave a review
+        </a>
+    }
+    else if (Model.UserReview == null)
+    {
+        <form method="post" asp-controller="@Model.Controller" asp-action="AddReview" class="review-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="@idParam" value="@Model.WorkId" />
+
+            <div class="review-form-head">
+                <span class="review-form-label">Write a review</span>
+                <div class="star-input">
+                    @for (var i = 5; i >= 1; i--)
+                    {
+                        <input type="radio" id="@(Model.Controller)-star-@i" name="nota" value="@i" required />
+                        <label for="@(Model.Controller)-star-@i" title="@i star@(i > 1 ? "s" : "")">&#9733;</label>
+                    }
+                </div>
+            </div>
+
+            <textarea name="texto" class="review-textarea" rows="3" maxlength="2000" required
+                      placeholder="Share your thoughts about this title..."></textarea>
+
+            <div class="review-form-actions">
+                <button type="submit" class="review-btn review-btn-primary">Post review</button>
+            </div>
+        </form>
+    }
+
+    @* ── Review list ──────────────────────────────────────────────────────── *@
+    @if (Model.Reviews.Any())
+    {
+        <div class="review-list">
+            @foreach (var r in Model.Reviews)
+            {
+                var initial = r.UsuarioNome.Length > 0 ? r.UsuarioNome[0].ToString().ToUpper() : "?";
+                <div class="review-card">
+                    <a href="/Profile/@r.UsuarioId" class="review-avatar-link">
+                        @if (!string.IsNullOrEmpty(r.UsuarioFoto))
+                        {
+                            <img class="review-avatar" src="@r.UsuarioFoto" alt="@r.UsuarioNome" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span class="review-avatar review-avatar-ph">@initial</span>
+                        }
+                    </a>
+                    <div class="review-body">
+                        <div class="review-meta">
+                            <a href="/Profile/@r.UsuarioId" class="review-author">@r.UsuarioNome</a>
+                            <span class="review-stars">@Html.Raw(Stars(r.Nota))</span>
+                            <span class="review-date">
+                                @r.Data.ToString("MMM d, yyyy")@(r.Editado ? " (edited)" : "")
+                            </span>
+                        </div>
+                        <p class="review-text">@r.Texto</p>
+
+                        @* ── Edit own review (collapsed until the button is pressed) ─ *@
+                        @if (Model.CurrentUserId == r.UsuarioId)
+                        {
+                            <details class="review-edit">
+                                <summary class="review-edit-summary">Edit review</summary>
+                                <form method="post" asp-controller="@Model.Controller" asp-action="AddReview" class="review-form review-edit-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="@idParam" value="@Model.WorkId" />
+
+                                    <div class="review-form-head">
+                                        <span class="review-form-label">Your review</span>
+                                        <div class="star-input">
+                                            @for (var i = 5; i >= 1; i--)
+                                            {
+                                                <input type="radio" id="@(Model.Controller)-edit-star-@i" name="nota" value="@i" required
+                                                @(r.Nota == i ? "checked" : "") />
+                                                <label for="@(Model.Controller)-edit-star-@i" title="@i star@(i > 1 ? "s" : "")">&#9733;</label>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <textarea name="texto" class="review-textarea" rows="3" maxlength="2000" required>@r.Texto</textarea>
+
+                                    <div class="review-form-actions">
+                                        <button type="submit" class="review-btn review-btn-primary">Update review</button>
+                                        <button type="submit" formaction="@Url.Action("DeleteReview", Model.Controller)"
+                                                formnovalidate class="review-btn review-btn-danger">Delete</button>
+                                    </div>
+                                </form>
+                            </details>
+                        }
+
+                        @* ── Replies ─────────────────────────────────────────── *@
+                        @if (r.Replies.Any() || Model.IsAuthenticated)
+                        {
+                            <div class="reply-list">
+                                @foreach (var rep in r.Replies)
+                                {
+                                    var repInitial = rep.UsuarioNome.Length > 0 ? rep.UsuarioNome[0].ToString().ToUpper() : "?";
+                                    <div class="reply-card">
+                                        <a href="/Profile/@rep.UsuarioId" class="reply-avatar-link">
+                                            @if (!string.IsNullOrEmpty(rep.UsuarioFoto))
+                                            {
+                                                <img class="reply-avatar" src="@rep.UsuarioFoto" alt="@rep.UsuarioNome" loading="lazy" />
+                                            }
+                                            else
+                                            {
+                                                <span class="reply-avatar reply-avatar-ph">@repInitial</span>
+                                            }
+                                        </a>
+                                        <div class="reply-body">
+                                            <div class="reply-meta">
+                                                <a href="/Profile/@rep.UsuarioId" class="reply-author">@rep.UsuarioNome</a>
+                                                <span class="reply-date">
+                                                    @rep.Data.ToString("MMM d, yyyy")@(rep.Editado ? " (edited)" : "")
+                                                </span>
+                                                @if (Model.CurrentUserId == rep.UsuarioId)
+                                                {
+                                                    <form method="post" asp-controller="@Model.Controller" asp-action="DeleteReply" class="reply-delete-form">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="@idParam" value="@Model.WorkId" />
+                                                        <input type="hidden" name="replyId" value="@rep.Id" />
+                                                        <button type="submit" class="reply-delete" title="Delete reply">Delete</button>
+                                                    </form>
+                                                }
+                                            </div>
+                                            <p class="reply-text">@rep.Texto</p>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (Model.IsAuthenticated)
+                                {
+                                    <details class="reply-add">
+                                        <summary class="reply-add-summary">Reply</summary>
+                                        <form method="post" asp-controller="@Model.Controller" asp-action="AddReply" class="reply-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="@idParam" value="@Model.WorkId" />
+                                            <input type="hidden" name="reviewId" value="@r.ReviewId" />
+                                            <textarea name="texto" class="reply-textarea" rows="2" maxlength="2000" required
+                                                      placeholder="Write a reply..."></textarea>
+                                            <button type="submit" class="review-btn review-btn-primary reply-submit">Reply</button>
+                                        </form>
+                                    </details>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="review-empty">No reviews yet. Be the first to share your thoughts!</p>
+    }
+</div>

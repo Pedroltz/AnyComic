@@ -37,6 +37,7 @@ namespace AnyComic.Controllers
             if (usuario == null) return NotFound();
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isOwnProfile = currentUserId == id.ToString();
 
             var vm = new PerfilViewModel
             {
@@ -51,8 +52,24 @@ namespace AnyComic.Controllers
                     .OrderByDescending(f => f.DataAdicao)
                     .Take(24)
                     .ToList(),
-                IsOwnProfile = currentUserId == id.ToString()
+                IsOwnProfile = isOwnProfile
             };
+
+            // Personal reviews are private — only load them for the owner's profile
+            if (isOwnProfile)
+            {
+                vm.ReviewsManga = await _context.ReviewsManga
+                    .Include(r => r.Manga)
+                    .Where(r => r.UsuarioId == id && r.Manga != null)
+                    .OrderByDescending(r => r.DataAtualizacao ?? r.DataCriacao)
+                    .ToListAsync();
+
+                vm.ReviewsAnime = await _context.ReviewsAnime
+                    .Include(r => r.Anime)
+                    .Where(r => r.UsuarioId == id && r.Anime != null)
+                    .OrderByDescending(r => r.DataAtualizacao ?? r.DataCriacao)
+                    .ToListAsync();
+            }
 
             return View(vm);
         }
@@ -91,7 +108,6 @@ namespace AnyComic.Controllers
                 return View(vm);
             }
 
-            var nameChanged = vm.Nome.Trim() != usuario.Nome;
             usuario.Nome  = vm.Nome.Trim();
             usuario.Sobre = vm.Sobre?.Trim();
 
@@ -123,22 +139,24 @@ namespace AnyComic.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Refresh auth cookie so the navbar shows the updated name immediately
-            if (nameChanged)
+            // Refresh auth cookie so the navbar reflects the updated name/photo immediately
+            var claims = new List<Claim>
             {
-                var claims = new List<Claim>
-                {
-                    new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                    new(ClaimTypes.Name, usuario.Nome),
-                    new(ClaimTypes.Email, usuario.Email),
-                    new("IsAdmin", "False")
-                };
-                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(identity),
-                    new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24) });
+                new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                new(ClaimTypes.Name, usuario.Nome),
+                new(ClaimTypes.Email, usuario.Email),
+                new("IsAdmin", "False")
+            };
+            if (!string.IsNullOrEmpty(usuario.FotoPerfil))
+            {
+                claims.Add(new Claim("FotoPerfil", usuario.FotoPerfil));
             }
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity),
+                new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24) });
 
             return RedirectToAction(nameof(Index), new { id = userId });
         }

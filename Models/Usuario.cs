@@ -36,5 +36,11 @@ namespace AnyComic.Models
 
         // Relationship with FavoritosAnime
         public ICollection<FavoritoAnime> FavoritosAnime { get; set; } = new List<FavoritoAnime>();
+
+        // Relationship with manga reviews written by this user
+        public ICollection<ReviewManga> ReviewsManga { get; set; } = new List<ReviewManga>();
+
+        // Relationship with anime reviews written by this user
+        public ICollection<ReviewAnime> ReviewsAnime { get; set; } = new List<ReviewAnime>();
     }
 }

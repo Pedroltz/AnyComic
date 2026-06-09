@@ -173,6 +173,30 @@
 .ad-ep-item-sub   { font-size: 11px; color: var(--ad-muted); }
 .ad-ep-now-playing { color: var(--ad-accent); font-weight: 700; }
 
+/* Collapsed episode list — hide overflow episodes behind the "Show more" toggle */
+.ad-ep-collapsed .ad-ep-extra { display: none; }
+
+.ad-ep-toggle {
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 11px;
+    background: rgba(255,255,255,.04);
+    border: none;
+    border-top: 1px solid var(--ad-border);
+    color: var(--ad-accent);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+.ad-ep-toggle:hover { background: rgba(239,44,47,.10); color: #ff4d50; }
+.ad-ep-toggle svg { transition: transform .25s ease; }
+.ad-ep-toggle.expanded svg { transform: rotate(180deg); }
+
 /* ── Info section ────────────────────────────────────────────────────────────── */
 
 .ad-info-section {

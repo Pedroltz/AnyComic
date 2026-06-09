@@ -16,80 +16,112 @@
     <div class="card mb-4" style="background-color: var(--bg-light); border: 1px solid var(--border-color);">
         <div class="card-body">
             <form method="get" asp-controller="Anime" asp-action="Index" id="searchForm">
-                <div class="row g-3">
-                    <!-- Search by Title -->
-                    <div class="col-md-4">
-                        <label for="searchTerm" class="form-label" style="font-weight: 600; color: var(--text-primary);">Search by Title</label>
-                        <input type="text" class="form-control" id="searchTerm" name="searchTerm" value="@ViewBag.SearchTerm" placeholder="Enter anime title..." style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
+
+                <!-- ── Primary row: title + toggle (mobile) + search btn (mobile) ── -->
+                <div class="search-row-primary">
+                    <div class="search-title-field">
+                        <label for="searchTerm" class="form-label d-none d-md-block" style="font-weight:600;color:var(--text-primary)">Search by Title</label>
+                        <input type="text" class="form-control" id="searchTerm" name="searchTerm"
+                               value="@ViewBag.SearchTerm" placeholder="Search by title..."
+                               style="background-color:var(--bg-primary);color:var(--text-primary);border-color:var(--border-color)">
                     </div>
 
-                    <!-- Search by Studio -->
-                    <div class="col-md-4">
-                        <label for="autor" class="form-label" style="font-weight: 600; color: var(--text-primary);">Search by Studio</label>
-                        <input type="text" class="form-control" id="autor" name="autor" value="@ViewBag.Autor" placeholder="Enter studio name..." style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
-                    </div>
+                    <!-- Toggle: mobile only -->
+                    <button type="button" class="filters-toggle-btn" id="filtersToggle" title="More filters">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="chevron-icon">
+                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </button>
 
-                    <!-- Sort By -->
-                    <div class="col-md-4">
-                        <label class="form-label" style="font-weight: 600; color: var(--text-primary);">Sort By</label>
-                        <input type="hidden" id="sortBy" name="sortBy" value="@(ViewBag.SortBy ?? "data_desc")">
-                        <div class="dropdown w-100">
-                            <button class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="sortByDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                                <span id="sortByLabel">
-                                    @{
-                                        var sortByText = ViewBag.SortBy switch
-                                        {
-                                            "data_asc" => "Oldest First",
-                                            "titulo_asc" => "Title (A-Z)",
-                                            "titulo_desc" => "Title (Z-A)",
-                                            "autor_asc" => "Studio (A-Z)",
-                                            "autor_desc" => "Studio (Z-A)",
-                                            _ => "Newest First"
-                                        };
-                                    }
-                                    @sortByText
-                                </span>
-                            </button>
-                            <ul class="dropdown-menu w-100" aria-labelledby="sortByDropdown" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
-                                <li><a class="dropdown-item sort-option" href="#" data-value="data_desc" data-label="Newest First">Newest First</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-value="data_asc" data-label="Oldest First">Oldest First</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-value="titulo_asc" data-label="Title (A-Z)">Title (A-Z)</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-value="titulo_desc" data-label="Title (Z-A)">Title (Z-A)</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-value="autor_asc" data-label="Studio (A-Z)">Studio (A-Z)</a></li>
-                                <li><a class="dropdown-item sort-option" href="#" data-value="autor_desc" data-label="Studio (Z-A)">Studio (Z-A)</a></li>
-                            </ul>
+                    <!-- Search submit: mobile only inline -->
+                    <button type="submit" class="search-btn-inline btn btn-primary" title="Search">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- ── Extra filters: collapsible on mobile, always visible on desktop ── -->
+                <div class="filters-extra" id="filtersExtra">
+                    <div class="row g-3 mt-1">
+                        <!-- Studio -->
+                        <div class="col-md-4 col-12">
+                            <label for="autor" class="form-label" style="font-weight:600;color:var(--text-primary)">Search by Studio</label>
+                            <input type="text" class="form-control" id="autor" name="autor"
+                                   value="@ViewBag.Autor" placeholder="Enter studio name..."
+                                   style="background-color:var(--bg-primary);color:var(--text-primary);border-color:var(--border-color)">
+                        </div>
+
+                        <!-- Sort By -->
+                        <div class="col-md-4 col-12">
+                            <label class="form-label" style="font-weight:600;color:var(--text-primary)">Sort By</label>
+                            <input type="hidden" id="sortBy" name="sortBy" value="@(ViewBag.SortBy ?? "data_desc")">
+                            <div class="dropdown w-100">
+                                <button class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button"
+                                        id="sortByDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+                                        style="background-color:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border-color)">
+                                    <span id="sortByLabel">
+                                        @{
+                                            var sortByText = ViewBag.SortBy switch
+                                            {
+                                                "data_asc"   => "Oldest First",
+                                                "titulo_asc" => "Title (A-Z)",
+                                                "titulo_desc"=> "Title (Z-A)",
+                                                "autor_asc"  => "Studio (A-Z)",
+                                                "autor_desc" => "Studio (Z-A)",
+                                                _            => "Newest First"
+                                            };
+                                        }
+                                        @sortByText
+                                    </span>
+                                </button>
+                                <ul class="dropdown-menu w-100" aria-labelledby="sortByDropdown" style="background-color:var(--bg-secondary);border:1px solid var(--border-color)">
+                                    <li><a class="dropdown-item sort-option" href="#" data-value="data_desc"  data-label="Newest First">Newest First</a></li>
+                                    <li><a class="dropdown-item sort-option" href="#" data-value="data_asc"   data-label="Oldest First">Oldest First</a></li>
+                                    <li><a class="dropdown-item sort-option" href="#" data-value="titulo_asc" data-label="Title (A-Z)">Title (A-Z)</a></li>
+                                    <li><a class="dropdown-item sort-option" href="#" data-value="titulo_desc"data-label="Title (Z-A)">Title (Z-A)</a></li>
+                                    <li><a class="dropdown-item sort-option" href="#" data-value="autor_asc"  data-label="Studio (A-Z)">Studio (A-Z)</a></li>
+                                    <li><a class="dropdown-item sort-option" href="#" data-value="autor_desc" data-label="Studio (Z-A)">Studio (Z-A)</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Date From -->
+                        <div class="col-md-2 col-6">
+                            <label for="dataInicio" class="form-label" style="font-weight:600;color:var(--text-primary)">Date From</label>
+                            <input type="date" class="form-control" id="dataInicio" name="dataInicio"
+                                   value="@ViewBag.DataInicio"
+                                   style="background-color:var(--bg-primary);color:var(--text-primary);border-color:var(--border-color)">
+                        </div>
+
+                        <!-- Date To -->
+                        <div class="col-md-2 col-6">
+                            <label for="dataFim" class="form-label" style="font-weight:600;color:var(--text-primary)">Date To</label>
+                            <input type="date" class="form-control" id="dataFim" name="dataFim"
+                                   value="@ViewBag.DataFim"
+                                   style="background-color:var(--bg-primary);color:var(--text-primary);border-color:var(--border-color)">
                         </div>
                     </div>
 
-                    <!-- Date Range Start -->
-                    <div class="col-md-6">
-                        <label for="dataInicio" class="form-label" style="font-weight: 600; color: var(--text-primary);">Release Date From</label>
-                        <input type="date" class="form-control" id="dataInicio" name="dataInicio" value="@ViewBag.DataInicio" style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
-                    </div>
-
-                    <!-- Date Range End -->
-                    <div class="col-md-6">
-                        <label for="dataFim" class="form-label" style="font-weight: 600; color: var(--text-primary);">Release Date To</label>
-                        <input type="date" class="form-control" id="dataFim" name="dataFim" value="@ViewBag.DataFim" style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
+                    <!-- Buttons -->
+                    <div class="d-flex gap-2 mt-3">
+                        <!-- Search: desktop only (mobile uses inline btn in primary row) -->
+                        <button type="submit" class="btn btn-primary d-none d-md-inline-flex align-items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                            Search
+                        </button>
+                        <a asp-controller="Anime" asp-action="Index" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                            </svg>
+                            Clear Filters
+                        </a>
                     </div>
                 </div>
 
-                <!-- Buttons -->
-                <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 4px;">
-                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                        </svg>
-                        Search
-                    </button>
-                    <a asp-controller="Anime" asp-action="Index" class="btn btn-outline-secondary">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 4px;">
-                            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                        </svg>
-                        Clear Filters
-                    </a>
-                </div>
             </form>
         </div>
     </div>
@@ -174,14 +206,8 @@
     }
 
     @@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0);    }
     }
 
     /* Form controls focus */
@@ -197,37 +223,130 @@
         background-color: #1a1a1a !important;
         border: 1px solid #333 !important;
     }
-
     .dropdown-item {
         color: #ffffff !important;
         padding: 8px 16px;
         transition: background-color 0.2s ease;
         background-color: transparent;
     }
-
     .dropdown-item:hover,
     .dropdown-item:focus {
-        background-color: rgba(128, 128, 128, 0.3) !important;
+        background-color: rgba(128,128,128,.3) !important;
         color: #ffffff !important;
+    }
+
+    /* ── Mobile search bar ── */
+    .search-row-primary {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+    }
+    .search-title-field { flex: 1; min-width: 0; }
+
+    /* Toggle button — hidden on desktop, shown on mobile */
+    .filters-toggle-btn {
+        flex-shrink: 0;
+        position: relative;
+        width: 44px;
+        height: 38px;
+        padding: 0;
+        background: var(--bg-primary, #0f0f0f);
+        border: 1px solid var(--border-color, #333);
+        border-radius: 6px;
+        color: rgba(255,255,255,.65);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color .2s, color .2s;
+    }
+    .filters-toggle-btn.active {
+        border-color: #e63946;
+        color: #e63946;
+    }
+    .filters-toggle-btn.has-active-filters::after {
+        content: '';
+        position: absolute;
+        top: 5px; right: 5px;
+        width: 6px; height: 6px;
+        background: #e63946;
+        border-radius: 50%;
+    }
+    .chevron-icon { transition: transform .25s ease; display: block; }
+    .filters-toggle-btn.active .chevron-icon { transform: rotate(180deg); }
+
+    /* Inline search btn — hidden on desktop, shown on mobile */
+    .search-btn-inline {
+        flex-shrink: 0;
+        width: 44px;
+        height: 38px;
+        padding: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Extra filters panel — collapsible on mobile */
+    @@media (max-width: 767px) {
+        .filters-toggle-btn,
+        .search-btn-inline { display: flex; }
+
+        .filters-extra {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height .35s ease, opacity .25s ease;
+            pointer-events: none;
+        }
+        .filters-extra.open {
+            max-height: 700px;
+            opacity: 1;
+            pointer-events: auto;
+        }
     }
 </style>
 
 <script>
-    // Sort By Dropdown functionality
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
+        // Sort By dropdown
         const sortOptions = document.querySelectorAll('.sort-option');
         const sortByInput = document.getElementById('sortBy');
         const sortByLabel = document.getElementById('sortByLabel');
 
-        sortOptions.forEach(option => {
-            option.addEventListener('click', function(e) {
+        sortOptions.forEach(function (option) {
+            option.addEventListener('click', function (e) {
                 e.preventDefault();
-                const value = this.getAttribute('data-value');
-                const label = this.getAttribute('data-label');
-
-                sortByInput.value = value;
-                sortByLabel.textContent = label;
+                sortByInput.value = this.getAttribute('data-value');
+                sortByLabel.textContent = this.getAttribute('data-label');
             });
+        });
+
+        // Mobile filters toggle
+        var toggle = document.getElementById('filtersToggle');
+        var extra  = document.getElementById('filtersExtra');
+        if (!toggle || !extra) return;
+
+        var isMobile = function () { return window.matchMedia('(max-width: 767px)').matches; };
+
+        var hasExtraFilter = function () {
+            var autor    = (document.getElementById('autor')?.value      || '').trim();
+            var sort     = (document.getElementById('sortBy')?.value     || 'data_desc').trim();
+            var dateFrom = (document.getElementById('dataInicio')?.value || '').trim();
+            var dateTo   = (document.getElementById('dataFim')?.value    || '').trim();
+            return autor !== '' || sort !== 'data_desc' || dateFrom !== '' || dateTo !== '';
+        };
+
+        if (hasExtraFilter()) {
+            toggle.classList.add('has-active-filters');
+            if (isMobile()) {
+                extra.classList.add('open');
+                toggle.classList.add('active');
+            }
+        }
+
+        toggle.addEventListener('click', function () {
+            extra.classList.toggle('open');
+            toggle.classList.toggle('active');
         });
     });
 </script>

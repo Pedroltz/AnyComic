@@ -72,14 +72,21 @@
                 <h3>Episodes</h3>
                 <span class="ad-ep-count">@Model.Episodios.Count total</span>
             </div>
-            <div class="ad-ep-list">
+            @{
+                const int epCollapseThreshold = 8;
+                var totalEps = Model.Episodios.Count;
+                var epCollapsible = totalEps > epCollapseThreshold;
+            }
+            <div class="ad-ep-list @(epCollapsible ? "ad-ep-collapsed" : "")" id="adEpList">
                 @if (Model.Episodios.Any())
                 {
-                    @foreach (var ep in Model.Episodios)
+                    for (var i = 0; i < Model.Episodios.Count; i++)
                     {
+                        var ep = Model.Episodios[i];
                         var isActive = Model.EpisodioAtual?.Id == ep.Id;
+                        var isExtra = i >= epCollapseThreshold;
                         <a href="@Url.Action("Details", "Anime", new { id = Model.Anime.Id, ep = ep.NumeroEpisodio })"
-                           class="ad-ep-item @(isActive ? "active" : "")"
+                           class="ad-ep-item @(isActive ? "active" : "") @(isExtra ? "ad-ep-extra" : "")"
                            id="@(isActive ? "activeEpCard" : null)">
                             <div class="ad-ep-num">@ep.NumeroEpisodio</div>
                             <div class="ad-ep-item-body">
@@ -103,6 +110,16 @@
                     <p style="color:#666; padding:16px; font-size:13px;">No episodes available yet.</p>
                 }
             </div>
+            @if (epCollapsible)
+            {
+                <button type="button" class="ad-ep-toggle" id="adEpToggle"
+                        data-more-label="Show @(totalEps - epCollapseThreshold) more" onclick="toggleEpisodes()">
+                    <span class="ad-ep-toggle-label">Show @(totalEps - epCollapseThreshold) more</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                </button>
+            }
         </aside>
     </div>
 
@@ -214,6 +231,9 @@
             }
         </div>
     </div>
+
+    <!-- Reviews -->
+    @await Html.PartialAsync("_ReviewsSection", Model.Reviews)
 
 </div>
 

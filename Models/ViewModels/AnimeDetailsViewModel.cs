@@ -9,4 +9,5 @@ public class AnimeDetailsViewModel
     public Episodio?                     EpisodioAnterior { get; init; }
     public bool                          IsFavorito       { get; init; }
     public PlayerInfo                    Player           { get; init; } = new();
+    public ReviewsSectionViewModel       Reviews          { get; init; } = new();
 }

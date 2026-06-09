@@ -12,6 +12,19 @@ function toggleDesc() {
     if (icon)  icon.style.transform = expanded ? 'rotate(180deg)' : '';
 }
 
+// Exposed globally for the inline onclick="toggleEpisodes()" in the view.
+// Collapses/expands the overflow portion of the episode list.
+function toggleEpisodes() {
+    var list = document.getElementById('adEpList');
+    var btn  = document.getElementById('adEpToggle');
+    if (!list || !btn) return;
+    var collapsed = list.classList.toggle('ad-ep-collapsed');
+    btn.classList.toggle('expanded', !collapsed);
+    var label = btn.querySelector('.ad-ep-toggle-label');
+    if (label) label.textContent = collapsed ? (btn.getAttribute('data-more-label') || 'Show more') : 'Show less';
+    if (collapsed) list.scrollTop = 0;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // ── Plyr initialization ──────────────────────────────────────────────────
     var playerEl = document.getElementById('ad-player');
@@ -35,6 +48,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Scroll active episode into view inside the sidebar ───────────────────
     var activeCard = document.getElementById('activeEpCard');
     if (activeCard) {
+        // If the active episode lives in the collapsed (hidden) portion,
+        // expand the list first so "Now playing" is actually visible.
+        if (activeCard.classList.contains('ad-ep-extra')) {
+            var epList = document.getElementById('adEpList');
+            if (epList && epList.classList.contains('ad-ep-collapsed')) {
+                toggleEpisodes();
+            }
+        }
         var list = activeCard.closest('.ad-ep-list');
         if (list) activeCard.scrollIntoView({ block: 'nearest' });
     }

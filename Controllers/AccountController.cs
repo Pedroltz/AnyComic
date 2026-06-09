@@ -63,7 +63,7 @@ namespace AnyComic.Controllers
                     return View();
                 }
 
-                await SignInUser(usuario.Id.ToString(), usuario.Nome, usuario.Email, false);
+                await SignInUser(usuario.Id.ToString(), usuario.Nome, usuario.Email, false, usuario.FotoPerfil);
                 return RedirectToAction("Index", "Home");
             }
         }
@@ -129,7 +129,7 @@ namespace AnyComic.Controllers
             return View();
         }
 
-        private async Task SignInUser(string userId, string nome, string email, bool isAdmin)
+        private async Task SignInUser(string userId, string nome, string email, bool isAdmin, string? fotoPerfil = null)
         {
             var claims = new List<Claim>
             {
@@ -138,6 +138,11 @@ namespace AnyComic.Controllers
                 new Claim(ClaimTypes.Email, email),
                 new Claim("IsAdmin", isAdmin.ToString())
             };
+
+            if (!string.IsNullOrEmpty(fotoPerfil))
+            {
+                claims.Add(new Claim("FotoPerfil", fotoPerfil));
+            }
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties
