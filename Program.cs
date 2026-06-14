@@ -34,10 +34,10 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
 
-// Configurar Entity Framework Core com SQL Server
+// Configurar Entity Framework Core com SQLite
 // A connection string é lida do arquivo appsettings.json
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configurar autenticação baseada em cookies
 // Sistema de login que mantém o usuário autenticado entre requisições
@@ -93,8 +93,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();                           // Adiciona cabeçalho HSTS para segurança
 }
 
-// Redireciona requisições HTTP para HTTPS
-app.UseHttpsRedirection();
+// HTTPS redirect desabilitado nesta versão (mobile/Termux): o app escuta apenas
+// HTTP e o HTTPS é terminado externamente pelo túnel (Cloudflare).
+// app.UseHttpsRedirection();
 
 // Habilita arquivos estáticos (CSS, JS, imagens) da pasta wwwroot
 app.UseStaticFiles();
