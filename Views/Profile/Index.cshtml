@@ -1,0 +1,438 @@
+@model AnyComic.Models.ViewModels.PerfilViewModel
+@{
+    ViewData["Title"] = Model.Usuario.Nome;
+    var avatarUrl = string.IsNullOrEmpty(Model.Usuario.FotoPerfil) ? null : Model.Usuario.FotoPerfil;
+    var bannerUrl = string.IsNullOrEmpty(Model.Usuario.ImagemBanner) ? null : Model.Usuario.ImagemBanner;
+    var inicial = Model.Usuario.Nome.Length > 0 ? Model.Usuario.Nome[0].ToString().ToUpper() : "?";
+
+    // Personal reviews (manga + anime) merged into one list, newest first.
+    // Only populated by the controller for the owner's own profile.
+    var myReviews = Model.ReviewsManga
+        .Where(r => r.Manga != null)
+        .Select(r => new {
+            Controller = "Manga",
+            Id = r.MangaId,
+            Titulo = r.Manga!.Titulo,
+            Capa = r.Manga.ImagemCapa,
+            r.Nota,
+            r.Texto,
+            Data = r.DataAtualizacao ?? r.DataCriacao
+        })
+        .Concat(Model.ReviewsAnime
+            .Where(r => r.Anime != null)
+            .Select(r => new {
+                Controller = "Anime",
+                Id = r.AnimeId,
+                Titulo = r.Anime!.Titulo,
+                Capa = r.Anime.ImagemCapa,
+                r.Nota,
+                r.Texto,
+                Data = r.DataAtualizacao ?? r.DataCriacao
+            }))
+        .OrderByDescending(x => x.Data)
+        .ToList();
+}
+
+<style>
+    .profile-wrap { max-width: 1400px; margin: 0 auto; padding: 0 0 60px; }
+
+    /* Two-column body: favorites (main) + reviews (sidebar) */
+    .profile-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 32px;
+        padding: 28px 32px 0;
+        align-items: start;
+    }
+    .profile-body.no-sidebar { grid-template-columns: 1fr; }
+    .profile-main { min-width: 0; }
+    .profile-sidebar {
+        position: sticky;
+        top: 20px;
+        min-width: 0;
+    }
+
+    /* Banner */
+    .profile-banner {
+        height: 300px;
+        background-color: #1a1a1a;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+    .profile-banner::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.65) 100%);
+    }
+    .profile-banner.no-banner {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a1a1a 50%, #1a0a0a 100%);
+        border-bottom: 2px solid #e63946;
+    }
+
+    /* Hero (avatar + name + edit btn) */
+    .profile-hero {
+        padding: 0 32px;
+        position: relative;
+        z-index: 2;
+        border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    /* Row 1: avatar (overlapping banner) + edit btn flush right */
+    .profile-hero-top {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-top: -68px;
+    }
+    .profile-avatar {
+        width: 132px;
+        height: 132px;
+        border-radius: 50%;
+        border: 5px solid #0f0f0f;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: #2a2a2a;
+    }
+    .profile-avatar-placeholder {
+        width: 132px;
+        height: 132px;
+        border-radius: 50%;
+        border: 5px solid #0f0f0f;
+        background: #e63946;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+    }
+    .btn-edit-profile {
+        flex-shrink: 0;
+        background: transparent;
+        border: 1px solid rgba(255,255,255,.22);
+        color: rgba(255,255,255,.7);
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: border-color .2s, color .2s, background .2s;
+        margin-bottom: 10px;
+        white-space: nowrap;
+    }
+    .btn-edit-profile:hover {
+        border-color: #e63946;
+        color: #e63946;
+        background: rgba(230,57,70,.06);
+    }
+    /* Row 2: name + date, clearly below the banner */
+    .profile-hero-info {
+        padding: 16px 0 22px;
+    }
+    .profile-name {
+        font-size: 26px;
+        font-weight: 700;
+        color: white;
+        margin: 0 0 5px;
+        line-height: 1.2;
+    }
+    .profile-joined {
+        font-size: 13px;
+        color: rgba(255,255,255,.4);
+    }
+
+    /* Bio — inline in the hero */
+    .profile-bio {
+        margin-top: 10px;
+        font-size: 14px;
+        color: rgba(255,255,255,.6);
+        line-height: 1.65;
+        white-space: pre-wrap;
+        max-width: 600px;
+    }
+
+    /* Sections */
+    .profile-section { margin: 0 0 30px; }
+    .profile-section-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: rgba(255,255,255,.6);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .profile-section-title span.count {
+        font-size: 12px;
+        background: rgba(255,255,255,.08);
+        border-radius: 20px;
+        padding: 2px 9px;
+        color: rgba(255,255,255,.4);
+    }
+
+    /* Media grid */
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+        gap: 16px;
+    }
+    .profile-card {
+        display: flex;
+        flex-direction: column;
+        text-decoration: none;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #1a1a1a;
+        border: 1px solid rgba(255,255,255,.06);
+        transition: transform .2s, border-color .2s;
+    }
+    .profile-card:hover { transform: translateY(-3px); border-color: rgba(230,57,70,.4); }
+    .profile-card img {
+        width: 100%;
+        aspect-ratio: 2/3;
+        object-fit: cover;
+        display: block;
+    }
+    .profile-card .card-title {
+        padding: 8px 10px;
+        font-size: 12px;
+        color: rgba(255,255,255,.7);
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .profile-empty {
+        color: rgba(255,255,255,.25);
+        font-size: 13px;
+        padding: 12px 0;
+    }
+
+    /* My Reviews */
+    .profile-reviews {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: calc(100vh - 90px);
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+    .profile-reviews::-webkit-scrollbar { width: 6px; }
+    .profile-reviews::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,.12);
+        border-radius: 3px;
+    }
+    .profile-review {
+        display: flex;
+        gap: 12px;
+        padding: 12px 14px;
+        background: #1a1a1a;
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 10px;
+        transition: border-color .2s;
+    }
+    .profile-review:hover { border-color: rgba(230,57,70,.4); }
+    .profile-review-cover {
+        width: 52px;
+        height: 76px;
+        object-fit: cover;
+        border-radius: 6px;
+        flex-shrink: 0;
+        background: #2a2a2a;
+    }
+    .profile-review-body { min-width: 0; flex: 1; }
+    .profile-review-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .profile-review-title {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .profile-review-title:hover { color: #e63946; }
+    .profile-review-stars { color: #f5a623; font-size: 13px; letter-spacing: 1px; }
+    .profile-review-stars .off { color: rgba(255,255,255,.18); }
+    .profile-review-date { font-size: 11px; color: rgba(255,255,255,.35); margin-left: auto; }
+    .profile-review-text {
+        color: rgba(255,255,255,.55);
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 6px 0 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Stack the reviews sidebar below the favorites on narrower screens */
+    @@media (max-width: 900px) {
+        .profile-body {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .profile-sidebar { position: static; }
+        .profile-reviews { max-height: none; overflow: visible; }
+    }
+
+    @@media (max-width: 600px) {
+        .profile-banner { height: 150px; }
+        .profile-hero { padding: 0 14px; }
+        .profile-hero-top { margin-top: -52px; }
+        .profile-avatar, .profile-avatar-placeholder {
+            width: 96px;
+            height: 96px;
+            font-size: 34px;
+        }
+        .profile-hero-info { padding: 10px 0 16px; }
+        .profile-name { font-size: 20px; }
+        .btn-edit-profile { padding: 6px 14px; font-size: 12px; margin-bottom: 6px; }
+        .profile-grid {
+            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+            gap: 8px;
+        }
+        .profile-card .card-title { font-size: 10px; padding: 5px 6px; }
+        .profile-body { padding: 16px 14px 0; }
+        .profile-bio { font-size: 13px; }
+    }
+</style>
+
+<!-- Banner -->
+<div class="profile-wrap">
+    <div class="profile-banner @(bannerUrl == null ? "no-banner" : "")"
+         @if (bannerUrl != null) { <text>style="background-image:url('@bannerUrl')"</text> }>
+    </div>
+
+    <!-- Hero: avatar (overlap) + edit btn | name below -->
+    <div class="profile-hero">
+        <div class="profile-hero-top">
+            @if (avatarUrl != null)
+            {
+                <img class="profile-avatar" src="@avatarUrl" alt="@Model.Usuario.Nome" />
+            }
+            else
+            {
+                <div class="profile-avatar-placeholder">@inicial</div>
+            }
+
+            @if (Model.IsOwnProfile)
+            {
+                <a href="/Profile/Edit" class="btn-edit-profile">Edit Profile</a>
+            }
+        </div>
+
+        <div class="profile-hero-info">
+            <h1 class="profile-name">@Model.Usuario.Nome</h1>
+            <span class="profile-joined">Member since @Model.Usuario.DataCriacao.ToString("MMM yyyy")</span>
+            @if (!string.IsNullOrWhiteSpace(Model.Usuario.Sobre))
+            {
+                <p class="profile-bio">@Model.Usuario.Sobre</p>
+            }
+        </div>
+    </div>
+
+    <!-- Body: favorites (main) | reviews (sidebar) -->
+    <div class="profile-body @(Model.IsOwnProfile ? "" : "no-sidebar")">
+    <div class="profile-main">
+    <!-- Manga Favorites -->
+    <div class="profile-section">
+        <p class="profile-section-title">
+            Favorite Manga
+            <span class="count">@Model.FavoritosManga.Count</span>
+        </p>
+        @if (Model.FavoritosManga.Any())
+        {
+            <div class="profile-grid">
+                @foreach (var fav in Model.FavoritosManga)
+                {
+                    <a href="@Url.Action("Details", "Manga", new { id = fav.MangaId })" class="profile-card">
+                        <img src="@fav.Manga!.ImagemCapa" alt="@fav.Manga.Titulo" loading="lazy" />
+                        <span class="card-title">@fav.Manga.Titulo</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="profile-empty">No favorite manga yet.</p>
+        }
+    </div>
+
+    <!-- Anime Favorites -->
+    <div class="profile-section">
+        <p class="profile-section-title">
+            Favorite Anime
+            <span class="count">@Model.FavoritosAnime.Count</span>
+        </p>
+        @if (Model.FavoritosAnime.Any())
+        {
+            <div class="profile-grid">
+                @foreach (var fav in Model.FavoritosAnime)
+                {
+                    <a href="@Url.Action("Details", "Anime", new { id = fav.AnimeId })" class="profile-card">
+                        <img src="@fav.Anime!.ImagemCapa" alt="@fav.Anime.Titulo" loading="lazy" />
+                        <span class="card-title">@fav.Anime.Titulo</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="profile-empty">No favorite anime yet.</p>
+        }
+    </div>
+
+    </div><!-- /profile-main -->
+
+    <!-- My Reviews (own profile only) -->
+    @if (Model.IsOwnProfile)
+    {
+        <aside class="profile-sidebar">
+        <div class="profile-section">
+            <p class="profile-section-title">
+                My Reviews
+                <span class="count">@myReviews.Count</span>
+            </p>
+            @if (myReviews.Any())
+            {
+                <div class="profile-reviews">
+                    @foreach (var rv in myReviews)
+                    {
+                        var detailsUrl = Url.Action("Details", rv.Controller, new { id = rv.Id });
+                        <div class="profile-review">
+                            <a href="@detailsUrl">
+                                <img class="profile-review-cover" src="@rv.Capa" alt="@rv.Titulo" loading="lazy" />
+                            </a>
+                            <div class="profile-review-body">
+                                <div class="profile-review-top">
+                                    <a href="@detailsUrl" class="profile-review-title">@rv.Titulo</a>
+                                    <span class="profile-review-stars">
+                                        @for (var i = 1; i <= 5; i++)
+                                        {
+                                            <span class="@(i <= rv.Nota ? "" : "off")">&#9733;</span>
+                                        }
+                                    </span>
+                                    <span class="profile-review-date">@rv.Data.ToString("MMM d, yyyy")</span>
+                                </div>
+                                <p class="profile-review-text">@rv.Texto</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="profile-empty">You haven't written any reviews yet.</p>
+            }
+        </div>
+        </aside><!-- /profile-sidebar -->
+    }
+    </div><!-- /profile-body -->
+</div>

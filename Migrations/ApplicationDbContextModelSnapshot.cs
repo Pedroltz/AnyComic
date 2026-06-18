@@ -22,6 +22,42 @@ namespace AnyComic.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AnyComic.Models.Anime", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Autor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ImagemCapa")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Animes");
+                });
+
             modelBuilder.Entity("AnyComic.Models.Banner", b =>
                 {
                     b.Property<int>("Id")
@@ -94,6 +130,42 @@ namespace AnyComic.Migrations
                     b.ToTable("Capitulos");
                 });
 
+            modelBuilder.Entity("AnyComic.Models.Episodio", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnimeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DataLancamento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LinkVideo")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("NomeEpisodio")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("NumeroEpisodio")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnimeId");
+
+                    b.ToTable("Episodios");
+                });
+
             modelBuilder.Entity("AnyComic.Models.Favorito", b =>
                 {
                     b.Property<int>("Id")
@@ -119,6 +191,33 @@ namespace AnyComic.Migrations
                         .IsUnique();
 
                     b.ToTable("Favoritos");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.FavoritoAnime", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnimeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DataAdicao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnimeId");
+
+                    b.HasIndex("UsuarioId", "AnimeId")
+                        .IsUnique();
+
+                    b.ToTable("FavoritosAnime");
                 });
 
             modelBuilder.Entity("AnyComic.Models.Manga", b =>
@@ -191,6 +290,150 @@ namespace AnyComic.Migrations
                     b.ToTable("PaginasMangas");
                 });
 
+            modelBuilder.Entity("AnyComic.Models.ReviewAnime", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnimeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DataAtualizacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Nota")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnimeId");
+
+                    b.HasIndex("UsuarioId", "AnimeId")
+                        .IsUnique();
+
+                    b.ToTable("ReviewsAnime");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewManga", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("DataAtualizacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MangaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Nota")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MangaId");
+
+                    b.HasIndex("UsuarioId", "MangaId")
+                        .IsUnique();
+
+                    b.ToTable("ReviewsManga");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewReplyAnime", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("DataAtualizacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReviewId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("ReviewRepliesAnime");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewReplyManga", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("DataAtualizacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReviewId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("ReviewRepliesManga");
+                });
+
             modelBuilder.Entity("AnyComic.Models.Usuario", b =>
                 {
                     b.Property<int>("Id")
@@ -207,6 +450,14 @@ namespace AnyComic.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("FotoPerfil")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<string>("ImagemBanner")
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -216,6 +467,10 @@ namespace AnyComic.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Sobre")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
 
@@ -283,6 +538,17 @@ namespace AnyComic.Migrations
                     b.Navigation("Manga");
                 });
 
+            modelBuilder.Entity("AnyComic.Models.Episodio", b =>
+                {
+                    b.HasOne("AnyComic.Models.Anime", "Anime")
+                        .WithMany("Episodios")
+                        .HasForeignKey("AnimeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Anime");
+                });
+
             modelBuilder.Entity("AnyComic.Models.Favorito", b =>
                 {
                     b.HasOne("AnyComic.Models.Manga", "Manga")
@@ -298,6 +564,25 @@ namespace AnyComic.Migrations
                         .IsRequired();
 
                     b.Navigation("Manga");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.FavoritoAnime", b =>
+                {
+                    b.HasOne("AnyComic.Models.Anime", "Anime")
+                        .WithMany("Favoritos")
+                        .HasForeignKey("AnimeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AnyComic.Models.Usuario", "Usuario")
+                        .WithMany("FavoritosAnime")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Anime");
 
                     b.Navigation("Usuario");
                 });
@@ -321,6 +606,91 @@ namespace AnyComic.Migrations
                     b.Navigation("Manga");
                 });
 
+            modelBuilder.Entity("AnyComic.Models.ReviewAnime", b =>
+                {
+                    b.HasOne("AnyComic.Models.Anime", "Anime")
+                        .WithMany("Reviews")
+                        .HasForeignKey("AnimeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AnyComic.Models.Usuario", "Usuario")
+                        .WithMany("ReviewsAnime")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Anime");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewManga", b =>
+                {
+                    b.HasOne("AnyComic.Models.Manga", "Manga")
+                        .WithMany("Reviews")
+                        .HasForeignKey("MangaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AnyComic.Models.Usuario", "Usuario")
+                        .WithMany("ReviewsManga")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Manga");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewReplyAnime", b =>
+                {
+                    b.HasOne("AnyComic.Models.ReviewAnime", "Review")
+                        .WithMany("Replies")
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AnyComic.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Review");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewReplyManga", b =>
+                {
+                    b.HasOne("AnyComic.Models.ReviewManga", "Review")
+                        .WithMany("Replies")
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AnyComic.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Review");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.Anime", b =>
+                {
+                    b.Navigation("Episodios");
+
+                    b.Navigation("Favoritos");
+
+                    b.Navigation("Reviews");
+                });
+
             modelBuilder.Entity("AnyComic.Models.Capitulo", b =>
                 {
                     b.Navigation("Paginas");
@@ -333,11 +703,29 @@ namespace AnyComic.Migrations
                     b.Navigation("Favoritos");
 
                     b.Navigation("Paginas");
+
+                    b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewAnime", b =>
+                {
+                    b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("AnyComic.Models.ReviewManga", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("AnyComic.Models.Usuario", b =>
                 {
                     b.Navigation("Favoritos");
+
+                    b.Navigation("FavoritosAnime");
+
+                    b.Navigation("ReviewsAnime");
+
+                    b.Navigation("ReviewsManga");
                 });
 #pragma warning restore 612, 618
         }

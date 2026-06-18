@@ -49,9 +49,6 @@ body {
   --card-hover: #252525;
 }
 
-@media (max-width: 991px) {
-
-}
 
 /* ========================================
    Global Link & Text Styles
@@ -370,6 +367,14 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 12px;
   color: var(--text-secondary);
   margin-bottom: 4px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  /* Reserve 2 lines so the date and card height stay aligned across cards */
+  min-height: 31px;
 }
 
 .manga-card-info {
@@ -378,24 +383,6 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: auto;
 }
 
-.manga-status {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-top: 5px;
-}
-
-.manga-status.ongoing {
-  background-color: #28a745;
-  color: white;
-}
-
-.manga-status.completed {
-  background-color: var(--text-secondary);
-  color: white;
-}
 
 /* ========================================
    Page Container & Layout
@@ -919,6 +906,8 @@ textarea.form-control:focus {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.3;
+  /* Always reserve 2 lines so cards keep the same height regardless of title length */
+  height: 33.8px;
 }
 
 .newest-card-author {
@@ -976,7 +965,6 @@ textarea.form-control:focus {
 
 }
 
-/* Light theme overrides for newest section */
 
 /* ========================================
    Details Page Styles
@@ -1336,42 +1324,6 @@ textarea.form-control:focus {
   }
 }
 
-/* Light theme Details overrides */
-
-.manga-details {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 30px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.manga-details-cover {
-  width: 100%;
-  max-width: 300px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.manga-details-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 10px;
-}
-
-.manga-details-author {
-  font-size: 18px;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-}
-
-.manga-details-description {
-  font-size: 15px;
-  line-height: 1.8;
-  color: var(--text-primary);
-  margin-bottom: 25px;
-}
 
 /* ========================================
    Chapter List Styles
@@ -1381,6 +1333,7 @@ textarea.form-control:focus {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border-color);
+  position: relative;
 }
 
 .chapter-item {
@@ -1392,6 +1345,70 @@ textarea.form-control:focus {
   text-decoration: none !important;
   color: inherit !important;
   gap: 14px;
+}
+
+/* Collapsed chapter list — hide overflow chapters behind the "Show more" toggle */
+.chapter-list-collapsed .chapter-extra {
+  display: none;
+}
+
+/* Smoky fade over the last visible chapters, hinting there's more below */
+.chapter-list-collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 110px;
+  background: linear-gradient(to bottom, rgba(26, 26, 26, 0) 0%, var(--bg-darker) 82%);
+  pointer-events: none;
+}
+
+/* Toggle button */
+.chapter-toggle-wrap {
+  text-align: center;
+  padding: 16px;
+}
+
+/* When collapsed, pull the button up so it floats on top of the fade */
+.chapter-list-collapsed + .chapter-toggle-wrap {
+  position: relative;
+  z-index: 2;
+  margin-top: -62px;
+  padding: 0 16px 8px;
+}
+
+.chapter-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 auto;
+  padding: 9px 22px;
+  border-radius: 22px;
+  border: 1px solid var(--border-color);
+  background: rgba(26, 26, 26, 0.85);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  color: var(--primary-red-light);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.chapter-toggle-btn:hover {
+  background: var(--primary-red);
+  border-color: var(--primary-red);
+  color: #fff;
+}
+
+.chapter-toggle-chevron {
+  transition: transform 0.25s ease;
+}
+
+.chapter-toggle-btn.expanded .chapter-toggle-chevron {
+  transform: rotate(180deg);
 }
 
 .chapter-item:last-child {
@@ -1504,7 +1521,6 @@ textarea.form-control:focus {
   }
 }
 
-/* Light theme chapter list */
 
 /* ========================================
    Reader Page Styles
@@ -1515,23 +1531,6 @@ textarea.form-control:focus {
   padding: 20px 0;
 }
 
-.reader-page {
-  max-width: 100%;
-  display: block;
-  margin: 0 auto 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.reader-controls {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.9);
-  padding: 15px;
-  text-align: center;
-  z-index: 1000;
-}
 
 /* ========================================
    Admin Panel Styles (Dark Theme)
@@ -1567,20 +1566,6 @@ textarea.form-control:focus {
   background-color: var(--bg-light);
 }
 
-/* ========================================
-   Utility Classes
-   ======================================== */
-.text-red {
-  color: var(--primary-red);
-}
-
-.bg-red {
-  background-color: var(--primary-red);
-}
-
-.border-red {
-  border-color: var(--primary-red) !important;
-}
 
 /* ========================================
    Animations
@@ -1600,38 +1585,7 @@ textarea.form-control:focus {
   animation: fadeIn 0.5s ease-out;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
-.slide-in {
-  animation: slideIn 0.4s ease-out;
-}
-
-/* ========================================
-   Loading Spinner
-   ======================================== */
-.spinner {
-  border: 3px solid var(--bg-light);
-  border-top: 3px solid var(--primary-red);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
 
 /* ========================================
    Banner Carousel Styles
@@ -1856,7 +1810,7 @@ textarea.form-control:focus {
 .banner-showcase-author {
   font-size: 18px;
   color: rgba(255, 255, 255, 0.8) !important;
-  margin: 0;
+  margin: -4px 0 0 0;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
 }
 
@@ -1866,14 +1820,14 @@ textarea.form-control:focus {
   margin: 8px 0 0 0;
   line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .banner-showcase-btn {
-  margin-top: 16px;
+  margin-top: 28px;
   width: fit-content;
   padding: 10px 28px;
   font-size: 15px;
@@ -1937,13 +1891,13 @@ textarea.form-control:focus {
 
   .banner-showcase-description {
     font-size: 13px;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     color: rgba(255, 255, 255, 0.6) !important;
     margin: 4px 0 0 0;
   }
 
   .banner-showcase-btn {
-    margin-top: 14px;
+    margin-top: 20px;
     padding: 12px 40px;
     font-size: 15px;
     border-radius: 24px;
@@ -1975,7 +1929,6 @@ textarea.form-control:focus {
   }
 }
 
-/* Light theme showcase overrides */
 
 /* ========================================
    Mobile Bottom Navigation
@@ -2009,6 +1962,13 @@ textarea.form-control:focus {
     justify-content: space-around;
     align-items: center;
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
+    /* Keep the bar on its own GPU layer so it stays static (no jitter)
+       while the page scrolls on mobile browsers */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
   }
 
   .mobile-nav-item {
@@ -2049,9 +2009,9 @@ textarea.form-control:focus {
     padding-bottom: 64px;
   }
 
-  /* Hide site footer on mobile (bottom nav replaces it visually) */
+  /* Hide site footer on mobile — bottom nav replaces it */
   .footer {
-    margin-bottom: 60px;
+    display: none;
   }
 }
 
@@ -2110,6 +2070,54 @@ textarea.form-control:focus {
   color: var(--text-primary, #e0e0e0);
 }
 
+/* ========================================
+   Header profile avatar (desktop + mobile)
+   ======================================== */
+
+/* Desktop navbar dropdown toggle */
+.nav-profile-toggle {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-light);
+}
+
+.nav-avatar-ph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-red);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Mobile bottom-nav avatar (replaces the person icon) */
+.mobile-nav-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Mobile profile popup header avatar */
+.mobile-profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .mobile-profile-actions {
   padding: 6px;
 }
@@ -2140,7 +2148,479 @@ textarea.form-control:focus {
   color: #ef2c2f;
 }
 
+/* ========================================
+   Reviews section (manga & anime details)
+   ======================================== */
+.reviews-section {
+  margin: 36px 0 20px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border-color);
+}
+
+.reviews-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.reviews-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.reviews-count {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 2px 10px;
+  color: var(--text-muted);
+}
+
+/* Write / edit form */
+.review-form {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.review-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.review-form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Star rating input — reverse order so hover/checked fills left-to-right */
+.star-input {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  gap: 2px;
+}
+
+.star-input input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.star-input label {
+  font-size: 26px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.star-input label:hover,
+.star-input label:hover ~ label,
+.star-input input:checked ~ label {
+  color: #f5a623;
+}
+
+.star-input label:active {
+  transform: scale(1.15);
+}
+
+.review-textarea {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px;
+  resize: vertical;
+  min-height: 76px;
+}
+
+.review-textarea:focus {
+  outline: none;
+  border-color: var(--primary-red);
+}
+
+.review-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.review-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.review-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.review-btn-primary {
+  background: var(--primary-red);
+  color: #fff;
+}
+
+.review-btn-primary:hover {
+  background: var(--primary-red-dark);
+}
+
+.review-btn-danger {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.review-btn-danger:hover {
+  border-color: var(--primary-red);
+  color: var(--primary-red-light);
+}
+
+.review-signin {
+  display: inline-block;
+  margin-bottom: 24px;
+  padding: 11px 22px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.review-signin:hover {
+  border-color: var(--primary-red);
+  color: var(--primary-red-light);
+}
+
+/* Review list */
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.review-card {
+  display: flex;
+  gap: 12px;
+}
+
+.review-avatar-link {
+  flex-shrink: 0;
+}
+
+.review-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-light);
+}
+
+.review-avatar-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-red);
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.review-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.review-author {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.review-author:hover {
+  color: var(--primary-red-light);
+}
+
+.review-stars {
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.review-stars .rv-star-on {
+  color: #f5a623;
+}
+
+.review-stars .rv-star-off {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.review-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.review-text {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.review-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+/* Edit own review (collapsible via <details>) */
+.review-edit {
+  margin-top: 10px;
+}
+
+.review-edit-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  width: fit-content;
+  user-select: none;
+}
+
+.review-edit-summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-edit-summary::before {
+  content: '\270E';
+  font-size: 13px;
+}
+
+.review-edit-summary:hover {
+  color: var(--primary-red-light);
+}
+
+.review-edit[open] .review-edit-summary {
+  margin-bottom: 10px;
+}
+
+.review-edit-form {
+  max-width: 560px;
+}
+
+/* ── Replies ──────────────────────────────────────────────────────────── */
+.reply-list {
+  margin: 12px 0 2px;
+  padding-left: 16px;
+  border-left: 2px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reply-card {
+  display: flex;
+  gap: 10px;
+}
+
+.reply-avatar-link {
+  flex-shrink: 0;
+}
+
+.reply-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-light);
+}
+
+.reply-avatar-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.reply-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.reply-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.reply-author:hover {
+  color: var(--primary-red-light);
+}
+
+.reply-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.reply-delete-form {
+  margin: 0 0 0 auto;
+}
+
+.reply-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.reply-delete:hover {
+  color: var(--primary-red-light);
+}
+
+.reply-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Reply composer (collapsible via <details>) */
+.reply-add {
+  margin-top: 2px;
+}
+
+.reply-add-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-red-light);
+  width: fit-content;
+  user-select: none;
+}
+
+.reply-add-summary::-webkit-details-marker {
+  display: none;
+}
+
+.reply-add-summary::before {
+  content: '\21A9';
+  font-size: 13px;
+}
+
+.reply-add[open] .reply-add-summary {
+  margin-bottom: 8px;
+}
+
+.reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 560px;
+}
+
+.reply-textarea {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  resize: vertical;
+  min-height: 56px;
+}
+
+.reply-textarea:focus {
+  outline: none;
+  border-color: var(--primary-red);
+}
+
+.reply-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.reply-submit {
+  align-self: flex-start;
+  padding: 7px 18px;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .review-date {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .star-input label {
+    font-size: 30px;
+  }
+}
+
 .mobile-profile-action-danger:hover {
   color: #ef2c2f;
   background-color: rgba(239, 44, 47, 0.08);
+}
+
+.mobile-profile-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 4px 14px;
 }

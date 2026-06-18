@@ -28,7 +28,7 @@ namespace AnyComic.Controllers
         // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(string email, string senha, bool isAdmin = false)
+        public async Task<IActionResult> Login(string email, string senha)
         {
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(senha))
             {
@@ -38,34 +38,49 @@ namespace AnyComic.Controllers
 
             var senhaHash = HashPassword(senha);
 
-            if (isAdmin)
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Email == email && u.Senha == senhaHash);
+
+            if (usuario == null)
             {
-                var admin = await _context.UsuariosAdmin
-                    .FirstOrDefaultAsync(u => u.Email == email && u.Senha == senhaHash);
-
-                if (admin == null)
-                {
-                    ViewBag.Error = "Invalid email or password";
-                    return View();
-                }
-
-                await SignInUser(admin.Id.ToString(), admin.Nome, admin.Email, true);
-                return RedirectToAction("Index", "Admin");
+                ViewBag.Error = "Invalid email or password";
+                return View();
             }
-            else
+
+            await SignInUser(usuario.Id.ToString(), usuario.Nome, usuario.Email, false, usuario.FotoPerfil);
+            return RedirectToAction("Index", "Home");
+        }
+
+        // GET: Account/AdminLogin
+        public IActionResult AdminLogin()
+        {
+            return View();
+        }
+
+        // POST: Account/AdminLogin
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdminLogin(string email, string senha)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(senha))
             {
-                var usuario = await _context.Usuarios
-                    .FirstOrDefaultAsync(u => u.Email == email && u.Senha == senhaHash);
-
-                if (usuario == null)
-                {
-                    ViewBag.Error = "Invalid email or password";
-                    return View();
-                }
-
-                await SignInUser(usuario.Id.ToString(), usuario.Nome, usuario.Email, false);
-                return RedirectToAction("Index", "Home");
+                ViewBag.Error = "Email and password are required";
+                return View();
             }
+
+            var senhaHash = HashPassword(senha);
+
+            var admin = await _context.UsuariosAdmin
+                .FirstOrDefaultAsync(u => u.Email == email && u.Senha == senhaHash);
+
+            if (admin == null)
+            {
+                ViewBag.Error = "Invalid email or password";
+                return View();
+            }
+
+            await SignInUser(admin.Id.ToString(), admin.Nome, admin.Email, true);
+            return RedirectToAction("Index", "Admin");
         }
 
         // GET: Account/Register
@@ -129,7 +144,7 @@ namespace AnyComic.Controllers
             return View();
         }
 
-        private async Task SignInUser(string userId, string nome, string email, bool isAdmin)
+        private async Task SignInUser(string userId, string nome, string email, bool isAdmin, string? fotoPerfil = null)
         {
             var claims = new List<Claim>
             {
@@ -138,6 +153,11 @@ namespace AnyComic.Controllers
                 new Claim(ClaimTypes.Email, email),
                 new Claim("IsAdmin", isAdmin.ToString())
             };
+
+            if (!string.IsNullOrEmpty(fotoPerfil))
+            {
+                claims.Add(new Claim("FotoPerfil", fotoPerfil));
+            }
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties

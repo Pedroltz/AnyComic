@@ -777,6 +777,17 @@
             .chapter-modal-card {
                 padding: 28px 20px;
             }
+
+            /* Page-turn slide animation (single & dual mode) */
+            .pg-slide-out-left  { animation: pgSlideOutLeft  0.18s ease-in  forwards; pointer-events: none; }
+            .pg-slide-out-right { animation: pgSlideOutRight 0.18s ease-in  forwards; pointer-events: none; }
+            .pg-slide-in-right  { animation: pgSlideInRight  0.2s  ease-out forwards; }
+            .pg-slide-in-left   { animation: pgSlideInLeft   0.2s  ease-out forwards; }
+
+            @@keyframes pgSlideOutLeft  { from { transform: translateX(0);     opacity: 1;   } to { transform: translateX(-55%); opacity: 0; } }
+            @@keyframes pgSlideOutRight { from { transform: translateX(0);     opacity: 1;   } to { transform: translateX(55%);  opacity: 0; } }
+            @@keyframes pgSlideInRight  { from { transform: translateX(100%);  opacity: 0.8; } to { transform: translateX(0);    opacity: 1; } }
+            @@keyframes pgSlideInLeft   { from { transform: translateX(-100%); opacity: 0.8; } to { transform: translateX(0);    opacity: 1; } }
         }
 
         /* Loading State */
@@ -860,7 +871,7 @@
             </button>
 
             <div class="dual-page-container" id="dualPageContainer" style="display:none;">
-                <img src="@Model.CaminhoImagem"
+                <img src="@ViewBag.PaginaImagemUrl"
                      alt="Page @Model.NumeroPagina"
                      class="manga-image"
                      id="mangaImageLeft"
@@ -871,7 +882,7 @@
                      id="mangaImageRight"
                      draggable="false">
             </div>
-            <img src="@Model.CaminhoImagem"
+            <img src="@ViewBag.PaginaImagemUrl"
                  alt="Page @Model.NumeroPagina"
                  class="manga-image"
                  id="mangaImage"
@@ -1530,27 +1541,46 @@
             const pageInfo = pageMap.find(p => p.pagina === pageNum);
             if (!pageInfo) return;
 
-            // Reset zoom
             if (scale > 1) resetZoom();
 
-            // Update current page
+            const direction = pageNum >= currentPage ? 'next' : 'prev';
             currentPage = pageNum;
 
             if (readingMode !== 'single') {
-                updateDualPageDisplay();
+                slidePageTransition(dualContainer, direction, function () {
+                    updateDualPageDisplay();
+                });
             } else {
-                // Show loading spinner (hidden by img onload)
-                showLoading();
-
-                // Swap image source (triggers onload -> hideLoading)
-                img.src = pageInfo.imagem;
-                img.alt = 'Page ' + pageNum;
-
-                updatePageUI();
+                slidePageTransition(img, direction, function () {
+                    showLoading();
+                    img.src = pageInfo.imagem;
+                    img.alt = 'Page ' + pageNum;
+                    updatePageUI();
+                });
             }
 
-            // Preload adjacent pages
             preloadAdjacentPages();
+        }
+
+        function slidePageTransition(el, direction, swapFn) {
+            if (!isMobile()) {
+                swapFn();
+                return;
+            }
+            const outClass = direction === 'next' ? 'pg-slide-out-left' : 'pg-slide-out-right';
+            const inClass  = direction === 'next' ? 'pg-slide-in-right' : 'pg-slide-in-left';
+            el.style.transform = '';
+            el.classList.add(outClass);
+            setTimeout(function () {
+                el.classList.remove(outClass);
+                el.style.transform = '';
+                swapFn();
+                el.classList.add(inClass);
+                el.addEventListener('animationend', function handler() {
+                    el.classList.remove(inClass);
+                    el.removeEventListener('animationend', handler);
+                });
+            }, 185);
         }
 
         // ===== CHAPTER TRANSITION MODAL =====

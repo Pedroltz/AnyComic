@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using AnyComic.Data;
 using AnyComic.Models;
+using AnyComic.Models.ViewModels;
 
 namespace AnyComic.Controllers
 {
@@ -104,15 +106,71 @@ namespace AnyComic.Controllers
             ViewBag.HasPages = totalPages > 0;
 
             // Verificar se está nos favoritos do usuário
-            if (User.Identity?.IsAuthenticated == true)
+            bool isAuthenticated = User.Identity?.IsAuthenticated == true;
+            bool isAdmin = User.FindFirstValue("IsAdmin") == "True";
+            bool canReview = isAuthenticated && !isAdmin;
+            int? currentUserId = null;
+            if (canReview)
             {
-                var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+                currentUserId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
                 var isFavorito = await _context.Favoritos
-                    .AnyAsync(f => f.UsuarioId == userId && f.MangaId == id);
+                    .AnyAsync(f => f.UsuarioId == currentUserId && f.MangaId == id);
                 ViewBag.IsFavorito = isFavorito;
             }
 
+            // Carregar reviews da obra (mais recentes primeiro) com suas respostas
+            var reviews = await _context.ReviewsManga
+                .Include(r => r.Usuario)
+                .Include(r => r.Replies).ThenInclude(rep => rep.Usuario)
+                .Where(r => r.MangaId == id)
+                .OrderByDescending(r => r.DataAtualizacao ?? r.DataCriacao)
+                .ToListAsync();
+
+            ViewBag.Reviews = BuildReviewsSection(reviews, currentUserId, id.Value, isAuthenticated, canReview);
+
             return View(manga);
+        }
+
+        /// <summary>
+        /// Projects loaded manga reviews into the shared presentation view model.
+        /// </summary>
+        private static ReviewsSectionViewModel BuildReviewsSection(
+            List<ReviewManga> reviews, int? currentUserId, int mangaId, bool isAuthenticated, bool canReview)
+        {
+            var items = reviews.Select(r => new ReviewItemViewModel
+            {
+                ReviewId    = r.Id,
+                UsuarioId   = r.UsuarioId,
+                UsuarioNome = r.Usuario?.Nome ?? "User",
+                UsuarioFoto = r.Usuario?.FotoPerfil,
+                Nota        = r.Nota,
+                Texto       = r.Texto,
+                Data        = r.DataAtualizacao ?? r.DataCriacao,
+                Editado     = r.DataAtualizacao != null,
+                Replies     = r.Replies
+                    .OrderBy(rep => rep.DataCriacao)
+                    .Select(rep => new ReviewReplyItemViewModel
+                    {
+                        Id          = rep.Id,
+                        UsuarioId   = rep.UsuarioId,
+                        UsuarioNome = rep.Usuario?.Nome ?? "User",
+                        UsuarioFoto = rep.Usuario?.FotoPerfil,
+                        Texto       = rep.Texto,
+                        Data        = rep.DataAtualizacao ?? rep.DataCriacao,
+                        Editado     = rep.DataAtualizacao != null
+                    }).ToList()
+            }).ToList();
+
+            return new ReviewsSectionViewModel
+            {
+                Controller      = "Manga",
+                WorkId          = mangaId,
+                Reviews         = items,
+                UserReview      = currentUserId.HasValue ? items.FirstOrDefault(i => i.UsuarioId == currentUserId.Value) : null,
+                IsAuthenticated = isAuthenticated,
+                CanReview       = canReview,
+                CurrentUserId   = currentUserId
+            };
         }
 
         // GET: Manga/Read/5
@@ -177,7 +235,7 @@ namespace AnyComic.Controllers
             {
                 pagina = p.NumeroPagina,
                 index = index + 1,
-                imagem = p.CaminhoImagem
+                imagem = EnsureProxied(p.CaminhoImagem)
             }).ToList();
 
             // Determine next/previous chapters
@@ -190,6 +248,7 @@ namespace AnyComic.Controllers
 
             ViewBag.TotalPaginas = paginasDoCapitulo.Count;
             ViewBag.PaginaAtual = paginaAtual.NumeroPagina;
+            ViewBag.PaginaImagemUrl = EnsureProxied(paginaAtual.CaminhoImagem);
             ViewBag.MangaId = manga.Id;
             ViewBag.MangaTitulo = manga.Titulo;
             ViewBag.CapituloAtual = capituloAtual;
@@ -206,7 +265,9 @@ namespace AnyComic.Controllers
         [Authorize]
         public async Task<IActionResult> Favoritos()
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var favoritos = await _context.Favoritos
                 .Include(f => f.Manga)
@@ -223,7 +284,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddFavorito(int id)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var favoritoExistente = await _context.Favoritos
                 .FirstOrDefaultAsync(f => f.UsuarioId == userId && f.MangaId == id);
@@ -250,7 +313,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveFavorito(int id, string? returnUrl)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var favorito = await _context.Favoritos
                 .FirstOrDefaultAsync(f => f.UsuarioId == userId && f.MangaId == id);
@@ -267,6 +332,147 @@ namespace AnyComic.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: Manga/AddReview
+        // Creates the user's review or updates it if one already exists (one per manga).
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddReview(int mangaId, int nota, string texto)
+        {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+
+            if (nota < 1 || nota > 5 || string.IsNullOrWhiteSpace(texto))
+            {
+                return RedirectToAction(nameof(Details), new { id = mangaId });
+            }
+
+            texto = texto.Trim();
+            if (texto.Length > 2000) texto = texto[..2000];
+
+            var review = await _context.ReviewsManga
+                .FirstOrDefaultAsync(r => r.UsuarioId == userId && r.MangaId == mangaId);
+
+            if (review == null)
+            {
+                _context.ReviewsManga.Add(new ReviewManga
+                {
+                    UsuarioId   = userId,
+                    MangaId     = mangaId,
+                    Nota        = nota,
+                    Texto       = texto,
+                    DataCriacao = DateTime.Now
+                });
+            }
+            else
+            {
+                review.Nota            = nota;
+                review.Texto           = texto;
+                review.DataAtualizacao = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id = mangaId });
+        }
+
+        // POST: Manga/DeleteReview
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteReview(int mangaId)
+        {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+
+            var review = await _context.ReviewsManga
+                .FirstOrDefaultAsync(r => r.UsuarioId == userId && r.MangaId == mangaId);
+
+            if (review != null)
+            {
+                _context.ReviewsManga.Remove(review);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Details), new { id = mangaId });
+        }
+
+        // POST: Manga/AddReply
+        // Adds a reply (comment without rating) to a review.
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddReply(int mangaId, int reviewId, string texto)
+        {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return RedirectToAction(nameof(Details), new { id = mangaId });
+            }
+
+            texto = texto.Trim();
+            if (texto.Length > 2000) texto = texto[..2000];
+
+            // Ensure the review exists and belongs to this manga before replying.
+            var reviewExists = await _context.ReviewsManga
+                .AnyAsync(r => r.Id == reviewId && r.MangaId == mangaId);
+
+            if (reviewExists)
+            {
+                _context.ReviewRepliesManga.Add(new ReviewReplyManga
+                {
+                    ReviewId    = reviewId,
+                    UsuarioId   = userId,
+                    Texto       = texto,
+                    DataCriacao = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Details), new { id = mangaId });
+        }
+
+        // POST: Manga/DeleteReply
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteReply(int mangaId, int replyId)
+        {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+
+            var reply = await _context.ReviewRepliesManga
+                .FirstOrDefaultAsync(r => r.Id == replyId && r.UsuarioId == userId);
+
+            if (reply != null)
+            {
+                _context.ReviewRepliesManga.Remove(reply);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Details), new { id = mangaId });
+        }
+
+        /// <summary>
+        /// Wraps external CDN image URLs through the local proxy so hotlink protection is bypassed.
+        /// Leaves local paths and already-proxied URLs untouched.
+        /// </summary>
+        private static string EnsureProxied(string url)
+        {
+            if (string.IsNullOrEmpty(url) || url.StartsWith("/Proxy/") || url.StartsWith("/uploads/") || url.StartsWith("/images/"))
+                return url;
+
+            if (url.StartsWith("https://uploads.mangadex.org") || url.StartsWith("http://uploads.mangadex.org"))
+                return $"/Proxy/Image?url={Uri.EscapeDataString(url)}";
+
+            return url;
         }
     }
 }

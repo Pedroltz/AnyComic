@@ -1,0 +1,68 @@
+@model AnyComic.Models.Anime
+
+@{
+    ViewData["Title"] = $"Delete {Model.Titulo}";
+}
+
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card shadow border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0">Confirm Deletion</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Warning!</strong> This action cannot be undone. All data will be permanently deleted.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            @if (!string.IsNullOrEmpty(Model.ImagemCapa))
+                            {
+                                <img src="@Model.ImagemCapa" class="img-fluid rounded" alt="@Model.Titulo">
+                            }
+                            else
+                            {
+                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 200px;">
+                                    <span>No cover</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="col-md-8">
+                            <h4>@Model.Titulo</h4>
+                            <p><strong>Studio:</strong> @Model.Autor</p>
+                            <p><strong>Description:</strong> @Model.Descricao</p>
+                            <p><strong>Episodes:</strong> @Model.Episodios.Count</p>
+                            <p><strong>Release Date:</strong> @Model.DataCriacao.ToString("MM/dd/yyyy")</p>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="alert alert-info" role="alert">
+                        <h5 class="alert-heading">What will be deleted:</h5>
+                        <ul class="mb-0">
+                            <li>Anime information</li>
+                            <li>Cover image</li>
+                            <li>All @Model.Episodios.Count episode(s) of the anime</li>
+                            <li>All related favorites</li>
+                        </ul>
+                    </div>
+
+                    <form method="post" asp-action="DeleteAnime" asp-route-id="@Model.Id">
+                        @Html.AntiForgeryToken()
+                        <div class="d-flex justify-content-between gap-2">
+                            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Are you absolutely sure you want to delete this anime?')">
+                                Yes, Delete Permanently
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

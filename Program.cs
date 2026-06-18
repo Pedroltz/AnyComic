@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using AnyComic.Data;
+using AnyComic.Services;
 
 // Cria o builder da aplicação web
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +11,28 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Adiciona suporte para Controllers com Views (padrão MVC)
 builder.Services.AddControllersWithViews();
+
+// Serviços de domínio
+builder.Services.AddScoped<IAnimeService, AnimeService>();
+
+// ===== LIMITES DE UPLOAD (vídeos de episódios podem ser grandes) =====
+// O Kestrel limita o corpo da requisição a ~28 MB por padrão. Sem isso,
+// o upload de vídeos maiores é interrompido e o navegador recebe uma
+// resposta vazia (NS_ERROR_NET_EMPTY_RESPONSE).
+const long maxUploadBytes = 2L * 1024 * 1024 * 1024; // 2 GB
+
+builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = maxUploadBytes;
+});
+
+// Limite do parser de formulários multipart (upload de arquivos)
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxUploadBytes;
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
 
 // Configurar Entity Framework Core com SQL Server
 // A connection string é lida do arquivo appsettings.json
