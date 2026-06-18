@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using AnyComic.Data;
 using AnyComic.Models;
 using AnyComic.Models.ViewModels;
@@ -105,10 +106,13 @@ namespace AnyComic.Controllers
             ViewBag.HasPages = totalPages > 0;
 
             // Verificar se está nos favoritos do usuário
+            bool isAuthenticated = User.Identity?.IsAuthenticated == true;
+            bool isAdmin = User.FindFirstValue("IsAdmin") == "True";
+            bool canReview = isAuthenticated && !isAdmin;
             int? currentUserId = null;
-            if (User.Identity?.IsAuthenticated == true)
+            if (canReview)
             {
-                currentUserId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+                currentUserId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
                 var isFavorito = await _context.Favoritos
                     .AnyAsync(f => f.UsuarioId == currentUserId && f.MangaId == id);
                 ViewBag.IsFavorito = isFavorito;
@@ -122,7 +126,7 @@ namespace AnyComic.Controllers
                 .OrderByDescending(r => r.DataAtualizacao ?? r.DataCriacao)
                 .ToListAsync();
 
-            ViewBag.Reviews = BuildReviewsSection(reviews, currentUserId, id.Value);
+            ViewBag.Reviews = BuildReviewsSection(reviews, currentUserId, id.Value, isAuthenticated, canReview);
 
             return View(manga);
         }
@@ -130,7 +134,8 @@ namespace AnyComic.Controllers
         /// <summary>
         /// Projects loaded manga reviews into the shared presentation view model.
         /// </summary>
-        private static ReviewsSectionViewModel BuildReviewsSection(List<ReviewManga> reviews, int? currentUserId, int mangaId)
+        private static ReviewsSectionViewModel BuildReviewsSection(
+            List<ReviewManga> reviews, int? currentUserId, int mangaId, bool isAuthenticated, bool canReview)
         {
             var items = reviews.Select(r => new ReviewItemViewModel
             {
@@ -162,7 +167,8 @@ namespace AnyComic.Controllers
                 WorkId          = mangaId,
                 Reviews         = items,
                 UserReview      = currentUserId.HasValue ? items.FirstOrDefault(i => i.UsuarioId == currentUserId.Value) : null,
-                IsAuthenticated = currentUserId.HasValue,
+                IsAuthenticated = isAuthenticated,
+                CanReview       = canReview,
                 CurrentUserId   = currentUserId
             };
         }
@@ -259,7 +265,9 @@ namespace AnyComic.Controllers
         [Authorize]
         public async Task<IActionResult> Favoritos()
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var favoritos = await _context.Favoritos
                 .Include(f => f.Manga)
@@ -276,7 +284,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddFavorito(int id)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var favoritoExistente = await _context.Favoritos
                 .FirstOrDefaultAsync(f => f.UsuarioId == userId && f.MangaId == id);
@@ -303,7 +313,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveFavorito(int id, string? returnUrl)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var favorito = await _context.Favoritos
                 .FirstOrDefaultAsync(f => f.UsuarioId == userId && f.MangaId == id);
@@ -329,7 +341,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddReview(int mangaId, int nota, string texto)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             if (nota < 1 || nota > 5 || string.IsNullOrWhiteSpace(texto))
             {
@@ -370,7 +384,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteReview(int mangaId)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var review = await _context.ReviewsManga
                 .FirstOrDefaultAsync(r => r.UsuarioId == userId && r.MangaId == mangaId);
@@ -391,7 +407,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddReply(int mangaId, int reviewId, string texto)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             if (string.IsNullOrWhiteSpace(texto))
             {
@@ -426,7 +444,9 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteReply(int mangaId, int replyId)
         {
-            var userId = int.Parse(User.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            var userId = int.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
             var reply = await _context.ReviewRepliesManga
                 .FirstOrDefaultAsync(r => r.Id == replyId && r.UsuarioId == userId);

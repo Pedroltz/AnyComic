@@ -1,14 +1,13 @@
 @{
-    ViewData["Title"] = "Sign in";
+    ViewData["Title"] = "Admin Sign in";
 }
 
-<!-- Login Page - HotComics Style -->
 <div class="page-container">
     <div class="row justify-content-center" style="margin-top: 60px;">
         <div class="col-lg-5 col-md-6">
             <div class="modal-content fade-in">
                 <div class="modal-header">
-                    <h2 class="modal-title w-100 text-center" style="font-size: 24px;">Sign in to AnyComic</h2>
+                    <h2 class="modal-title w-100 text-center" style="font-size: 24px;">Admin Sign in</h2>
                 </div>
                 <div class="modal-body">
                     @if (ViewBag.Error != null)
@@ -18,7 +17,7 @@
                         </div>
                     }
 
-                    <form method="post" asp-controller="Account" asp-action="Login">
+                    <form method="post" asp-controller="Account" asp-action="AdminLogin">
                         @Html.AntiForgeryToken()
 
                         <div class="mb-3">
@@ -35,17 +34,6 @@
                             <button type="submit" class="btn btn-primary btn-lg">Sign in</button>
                         </div>
                     </form>
-
-                    <hr class="my-4" style="border-color: #dee2e6;">
-
-                    <div class="text-center">
-                        <p style="margin: 0; color: #6c757d; font-size: 14px;">
-                            Don't have an account?
-                            <a asp-controller="Account" asp-action="Register" style="color: #ef2c2f; font-weight: 600; text-decoration: none;">
-                                Sign up here
-                            </a>
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
