@@ -51,8 +51,11 @@ namespace AnyComic.Models.ViewModels
         /// <summary>The current user's own review, if they have one.</summary>
         public ReviewItemViewModel? UserReview { get; set; }
 
-        /// <summary>Whether a user is signed in (controls the form vs. sign-in prompt).</summary>
+        /// <summary>Whether a user is signed in (controls the sign-in prompt).</summary>
         public bool IsAuthenticated { get; set; }
+
+        /// <summary>Whether the current user can post reviews and replies (false for admins).</summary>
+        public bool CanReview { get; set; }
 
         /// <summary>Current user's id, used to show delete controls on their own replies.</summary>
         public int? CurrentUserId { get; set; }

@@ -37,6 +37,7 @@ public class AnimeController(IAnimeService animeService) : Controller
     [Authorize]
     public async Task<IActionResult> Favoritos()
     {
+        if (IsAdmin()) return Forbid();
         var favoritos = await animeService.GetFavoritosAsync(GetUserId()!.Value);
         return View(favoritos);
     }
@@ -44,6 +45,7 @@ public class AnimeController(IAnimeService animeService) : Controller
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> AddFavorito(int id)
     {
+        if (IsAdmin()) return Forbid();
         await animeService.AddFavoritoAsync(id, GetUserId()!.Value);
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -51,6 +53,7 @@ public class AnimeController(IAnimeService animeService) : Controller
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveFavorito(int id, string? returnUrl)
     {
+        if (IsAdmin()) return Forbid();
         await animeService.RemoveFavoritoAsync(id, GetUserId()!.Value);
         return returnUrl == "favoritos"
             ? RedirectToAction(nameof(Favoritos))
@@ -60,6 +63,7 @@ public class AnimeController(IAnimeService animeService) : Controller
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> AddReview(int animeId, int nota, string texto)
     {
+        if (IsAdmin()) return Forbid();
         await animeService.AddReviewAsync(animeId, GetUserId()!.Value, nota, texto);
         return RedirectToAction(nameof(Details), new { id = animeId });
     }
@@ -67,6 +71,7 @@ public class AnimeController(IAnimeService animeService) : Controller
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteReview(int animeId)
     {
+        if (IsAdmin()) return Forbid();
         await animeService.DeleteReviewAsync(animeId, GetUserId()!.Value);
         return RedirectToAction(nameof(Details), new { id = animeId });
     }
@@ -74,6 +79,7 @@ public class AnimeController(IAnimeService animeService) : Controller
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> AddReply(int animeId, int reviewId, string texto)
     {
+        if (IsAdmin()) return Forbid();
         await animeService.AddReplyAsync(animeId, reviewId, GetUserId()!.Value, texto);
         return RedirectToAction(nameof(Details), new { id = animeId });
     }
@@ -81,12 +87,16 @@ public class AnimeController(IAnimeService animeService) : Controller
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteReply(int animeId, int replyId)
     {
+        if (IsAdmin()) return Forbid();
         await animeService.DeleteReplyAsync(replyId, GetUserId()!.Value);
         return RedirectToAction(nameof(Details), new { id = animeId });
     }
 
+    private bool IsAdmin() => User.FindFirstValue("IsAdmin") == "True";
+
     private int? GetUserId()
     {
+        if (IsAdmin()) return null;
         var claim = User.FindFirst(ClaimTypes.NameIdentifier);
         return claim != null ? int.Parse(claim.Value) : null;
     }

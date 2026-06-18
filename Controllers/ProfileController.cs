@@ -29,6 +29,9 @@ namespace AnyComic.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index(int id)
         {
+            if (User.FindFirstValue("IsAdmin") == "True")
+                return RedirectToAction("Index", "Admin");
+
             var usuario = await _context.Usuarios
                 .Include(u => u.Favoritos).ThenInclude(f => f.Manga)
                 .Include(u => u.FavoritosAnime).ThenInclude(f => f.Anime)
@@ -78,6 +81,8 @@ namespace AnyComic.Controllers
         [Authorize]
         public async Task<IActionResult> Edit()
         {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var usuario = await _context.Usuarios.FindAsync(userId);
             if (usuario == null) return NotFound();
@@ -97,6 +102,8 @@ namespace AnyComic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(EditarPerfilViewModel vm)
         {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var usuario = await _context.Usuarios.FindAsync(userId);
             if (usuario == null) return NotFound();

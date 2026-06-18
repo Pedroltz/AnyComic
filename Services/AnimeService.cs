@@ -117,6 +117,7 @@ public class AnimeService(ApplicationDbContext context) : IAnimeService
             Reviews         = items,
             UserReview      = currentUserId.HasValue ? items.FirstOrDefault(i => i.UsuarioId == currentUserId.Value) : null,
             IsAuthenticated = currentUserId.HasValue,
+            CanReview       = currentUserId.HasValue,
             CurrentUserId   = currentUserId
         };
     }
