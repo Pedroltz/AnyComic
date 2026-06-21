@@ -34,10 +34,17 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
 
+<<<<<<< Updated upstream
 // Configurar Entity Framework Core com SQL Server
 // A connection string é lida do arquivo appsettings.json
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+=======
+// Configurar Entity Framework Core com Npgsql
+// A connection string é lida do arquivo appsettings.json
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+>>>>>>> Stashed changes
 
 // Configurar autenticação baseada em cookies
 // Sistema de login que mantém o usuário autenticado entre requisições
