@@ -2,7 +2,7 @@
 
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-8.0-blue)
 ![Entity Framework](https://img.shields.io/badge/Entity%20Framework-9.0-green)
-![SQL Server](https://img.shields.io/badge/SQL%20Server-2019+-red)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
 
 Sistema web desenvolvido em ASP.NET Core MVC para gerenciamento e leitura de mangás e exibição de animes online, com área administrativa completa e sistema de autenticação.
 
@@ -40,7 +40,7 @@ O projeto conta com diagramas técnicos que documentam a arquitetura e casos de 
 
 - **ASP.NET Core MVC 8.0** - Framework web principal
 - **Entity Framework Core 9.0** - ORM para acesso ao banco de dados
-- **SQL Server** - Sistema de gerenciamento de banco de dados
+- **PostgreSQL** - Sistema de gerenciamento de banco de dados
 - **Bootstrap 5** - Framework CSS para design responsivo
 - **Authentication Cookies** - Sistema de autenticação baseado em cookies
 
@@ -49,8 +49,8 @@ O projeto conta com diagramas técnicos que documentam a arquitetura e casos de 
 Antes de começar, certifique-se de ter instalado:
 
 - [.NET SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) ou superior
-- [SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads) (2019 ou superior) ou SQL Server Express
-- [SQL Server Management Studio (SSMS)](https://docs.microsoft.com/sql/ssms/download-sql-server-management-studio-ssms) - opcional, para gerenciar o banco
+- [PostgreSQL](https://www.postgresql.org/download/) (versão 15 ou superior)
+- [pgAdmin](https://www.pgadmin.org/download/) - opcional, para gerenciar o banco
 - [Visual Studio 2022](https://visualstudio.microsoft.com/) ou [VS Code](https://code.visualstudio.com/)
 
 ## Instalação e Configuração
@@ -64,31 +64,26 @@ cd AnyComic-FDevs
 
 ### 2. Configure a Connection String
 
-Abra o arquivo `appsettings.json` e ajuste a connection string de acordo com sua instalação do SQL Server:
+Abra o arquivo `appsettings.json` e ajuste a connection string de acordo com sua instalação do PostgreSQL:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=AnyComicDB;Trusted_Connection=True;TrustServerCertificate=True;"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=AnyComicDB;Username=postgres;Password=yourpassword"
   }
 }
 ```
 
 **Opções de Connection String:**
 
-**Para SQL Server Express (padrão):**
+**Para PostgreSQL (padrão):**
 ```
-Server=localhost\\SQLEXPRESS;Database=AnyComicDB;Trusted_Connection=True;TrustServerCertificate=True;
-```
-
-**Para SQL Server com Windows Authentication:**
-```
-Server=localhost;Database=AnyComicDB;Trusted_Connection=True;TrustServerCertificate=True;
+Host=localhost;Port=5432;Database=AnyComicDB;Username=postgres;Password=yourpassword
 ```
 
-**Para SQL Server com Usuário e Senha:**
+**Para PostgreSQL com Usuário e Senha Customizados:**
 ```
-Server=localhost;Database=AnyComicDB;User Id=seu_usuario;Password=sua_senha;TrustServerCertificate=True;
+Host=yourhost;Port=5432;Database=AnyComicDB;Username=your_user;Password=your_pass
 ```
 
 ### 3. Instale as Dependências
@@ -117,7 +112,7 @@ dotnet tool update --global dotnet-ef
 dotnet ef migrations remove
 ```
 
-Crie as migrations para SQL Server:
+Crie as migrations para PostgreSQL:
 
 ```bash
 dotnet ef migrations add InitialCreate
@@ -130,7 +125,7 @@ dotnet ef database update
 ```
 
 Este comando irá:
-- Criar automaticamente o banco de dados `AnyComicDB` no SQL Server
+- Criar automaticamente o banco de dados `AnyComicDB` no PostgreSQL
 - Criar todas as tabelas necessárias
 - Popular o banco com dados iniciais (um usuário admin padrão)
 
@@ -314,17 +309,17 @@ AnyComic-FDevs/
 
 ## Solução de Problemas
 
-### Erro de Conexão com SQL Server
+### Erro de Conexão com PostgreSQL
 
-**Problema:** `A network-related or instance-specific error occurred while establishing a connection to SQL Server`
+**Problema:** `A network-related or instance-specific error occurred while establishing a connection to PostgreSQL`
 
 **Solução:**
-1. Verifique se o SQL Server está rodando:
+1. Verifique se o PostgreSQL está rodando:
    ```powershell
-   Get-Service -Name "MSSQL*"
+   Get-Service -Name "postgresql*"
    ```
 2. Confirme a connection string no `appsettings.json`
-3. Para SQL Server Express, use `localhost\SQLEXPRESS`
+3. Para PostgreSQL, use `localhost` e a porta `5432`
 
 ### Erro ao executar migrations
 
