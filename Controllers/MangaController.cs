@@ -5,16 +5,19 @@ using System.Security.Claims;
 using AnyComic.Data;
 using AnyComic.Models;
 using AnyComic.Models.ViewModels;
+using AnyComic.Services;
 
 namespace AnyComic.Controllers
 {
     public class MangaController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public MangaController(ApplicationDbContext context)
+        public MangaController(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         // GET: Manga/Index
@@ -191,7 +194,7 @@ namespace AnyComic.Controllers
                 return NotFound();
             }
 
-            if (!manga.Capitulos.Any() || !manga.Capitulos.Any(c => c.Paginas.Any()))
+            if (!manga.Capitulos.Any())
             {
                 return RedirectToAction(nameof(Details), new { id });
             }
@@ -209,6 +212,44 @@ namespace AnyComic.Controllers
                 {
                     capituloAtual = manga.Capitulos.OrderBy(c => c.NumeroCapitulo).First();
                 }
+            }
+
+            // Chapters imported by the WeebCentral catalog sweep have no pages yet —
+            // index them lazily the first time a reader opens the chapter.
+            if (!string.IsNullOrEmpty(capituloAtual.FonteCapituloId) && !capituloAtual.Paginas.Any())
+            {
+                var proxyUrl = _configuration["WeebCentral:ProxyUrl"];
+                var importer = new WeebCentralImporter(string.IsNullOrEmpty(proxyUrl) ? null : proxyUrl);
+                var chapterDto = new WeebCentralImporter.WeebCentralChapter
+                {
+                    Id            = capituloAtual.FonteCapituloId,
+                    ChapterNumber = capituloAtual.NumeroCapitulo,
+                    ChapterTitle  = capituloAtual.NomeCapitulo ?? ""
+                };
+
+                var pageUrls = await importer.IndexChapterPages(chapterDto, string.Empty);
+                if (pageUrls.Count > 0)
+                {
+                    int pageNumber = 1;
+                    var novasPaginas = pageUrls.Select(url => new PaginaManga
+                    {
+                        MangaId       = manga.Id,
+                        CapituloId    = capituloAtual.Id,
+                        NumeroPagina  = pageNumber++,
+                        CaminhoImagem = url,
+                        DataUpload    = DateTime.Now
+                    }).ToList();
+
+                    _context.PaginasMangas.AddRange(novasPaginas);
+                    await _context.SaveChangesAsync();
+
+                    capituloAtual.Paginas = novasPaginas;
+                }
+            }
+
+            if (!capituloAtual.Paginas.Any())
+            {
+                return RedirectToAction(nameof(Details), new { id });
             }
 
             // Get the requested page from the current chapter

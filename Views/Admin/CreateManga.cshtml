@@ -91,6 +91,45 @@
                                                 Use a proxy if the server IP is blocked by WeebCentral (common on cloud servers).
                                             </div>
                                         </div>
+
+                                        <hr class="my-4">
+
+                                        <!-- Catalog Sync -->
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 4px;">
+                                                    <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                                </svg>
+                                                Bulk Catalog Sync
+                                            </label>
+                                            <div class="form-text mb-2">
+                                                Sweeps the WeebCentral catalog (most popular series first). Saves only
+                                                metadata and chapter lists — chapter pages are indexed the first time
+                                                a reader opens them. Safe to run repeatedly (already-imported series are skipped).
+                                            </div>
+                                            <div class="input-group">
+                                                <span class="input-group-text" style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">Max series</span>
+                                                <input type="number" class="form-control" id="catalogMaxSeries" value="20" min="1" max="5000" style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
+                                                <button type="button" class="btn btn-primary" id="btnSyncCatalog">
+                                                    Sincronizar catálogo
+                                                </button>
+                                            </div>
+
+                                            <div id="catalogSyncProgress" class="mt-3" style="display: none;">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span id="catalogSyncStatusText" class="fw-semibold" style="color: var(--text-primary);">Starting...</span>
+                                                    <span id="catalogSyncPercent" class="badge bg-primary">0/0</span>
+                                                </div>
+                                                <div class="progress" style="height: 8px;">
+                                                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                         id="catalogSyncProgressBar"
+                                                         role="progressbar"
+                                                         style="width: 0%;">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- MangaLivre Options (Hidden by default) -->
@@ -502,6 +541,81 @@
             setTimeout(() => {
                 window.location.href = '@Url.Action("Index", "Admin")';
             }, 3000);
+        }
+    });
+
+    // Bulk Catalog Sync (WeebCentral)
+    const btnSyncCatalog = document.getElementById('btnSyncCatalog');
+    let catalogSyncPollHandle = null;
+
+    function pollCatalogSyncStatus() {
+        const progressContainer = document.getElementById('catalogSyncProgress');
+        const progressBar = document.getElementById('catalogSyncProgressBar');
+        const statusText = document.getElementById('catalogSyncStatusText');
+        const percentBadge = document.getElementById('catalogSyncPercent');
+
+        catalogSyncPollHandle = setInterval(async () => {
+            try {
+                const response = await fetch('@Url.Action("WeebCentralSyncStatus", "Admin")');
+                const status = await response.json();
+
+                if (!status.success) return;
+
+                const pct = status.total > 0 ? Math.round((status.processed / status.total) * 100) : 0;
+                progressBar.style.width = pct + '%';
+                percentBadge.textContent = `${status.processed}/${status.total}`;
+
+                if (status.running) {
+                    statusText.textContent = 'Syncing catalog...';
+                } else {
+                    clearInterval(catalogSyncPollHandle);
+                    statusText.textContent = `Sync complete — ${status.processed} processed, ${status.errors} error(s)`;
+                    btnSyncCatalog.disabled = false;
+                    btnSyncCatalog.textContent = 'Sincronizar catálogo';
+                }
+            } catch (error) {
+                clearInterval(catalogSyncPollHandle);
+                statusText.textContent = `Error polling status: ${error.message}`;
+                btnSyncCatalog.disabled = false;
+                btnSyncCatalog.textContent = 'Sincronizar catálogo';
+            }
+        }, 2000);
+    }
+
+    btnSyncCatalog.addEventListener('click', async function() {
+        const maxSeries = parseInt(document.getElementById('catalogMaxSeries').value, 10) || 20;
+        const proxyUrl = document.getElementById('weebcentralProxyUrl').value.trim();
+
+        if (!confirm(`Start a catalog sync of up to ${maxSeries} series from WeebCentral?`)) {
+            return;
+        }
+
+        btnSyncCatalog.disabled = true;
+        btnSyncCatalog.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Starting...';
+
+        const params = new URLSearchParams({ maxSeries: maxSeries });
+        if (proxyUrl) params.append('proxyUrl', proxyUrl);
+
+        try {
+            const response = await fetch('@Url.Action("SyncWeebCentralCatalog", "Admin")?' + params.toString(), {
+                method: 'POST'
+            });
+            const result = await response.json();
+
+            if (!result.success) {
+                alert(result.message || 'Failed to start catalog sync');
+                btnSyncCatalog.disabled = false;
+                btnSyncCatalog.textContent = 'Sincronizar catálogo';
+                return;
+            }
+
+            document.getElementById('catalogSyncProgress').style.display = 'block';
+            btnSyncCatalog.textContent = 'Syncing...';
+            pollCatalogSyncStatus();
+        } catch (error) {
+            alert(`Error starting catalog sync: ${error.message}`);
+            btnSyncCatalog.disabled = false;
+            btnSyncCatalog.textContent = 'Sincronizar catálogo';
         }
     });
 </script>

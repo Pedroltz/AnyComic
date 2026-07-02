@@ -39,7 +39,9 @@ namespace AnyComic.Migrations
                     Autor = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Descricao = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     ImagemCapa = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    DataCriacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    DataCriacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Fonte = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    FonteId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -141,7 +143,8 @@ namespace AnyComic.Migrations
                     MangaId = table.Column<int>(type: "integer", nullable: false),
                     NumeroCapitulo = table.Column<int>(type: "integer", nullable: false),
                     NomeCapitulo = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    DataCriacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    DataCriacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FonteCapituloId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -391,6 +394,11 @@ namespace AnyComic.Migrations
                 table: "FavoritosAnime",
                 columns: new[] { "UsuarioId", "AnimeId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Mangas_FonteId",
+                table: "Mangas",
+                column: "FonteId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PaginasMangas_CapituloId",
