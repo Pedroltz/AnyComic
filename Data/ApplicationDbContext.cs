@@ -64,6 +64,10 @@ namespace AnyComic.Data
                 .HasForeignKey(p => p.CapituloId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Índice para deduplicar séries importadas do WeebCentral (varredura de catálogo)
+            modelBuilder.Entity<Manga>()
+                .HasIndex(m => m.FonteId);
+
             // Criar índices únicos
             modelBuilder.Entity<Usuario>()
                 .HasIndex(u => u.Email)

@@ -38,6 +38,14 @@ namespace AnyComic.Models
         /// </summary>
         public DateTime DataCriacao { get; set; } = DateTime.Now;
 
+        /// <summary>
+        /// Identifier of this chapter on the external source (e.g. WeebCentral chapter ID).
+        /// Null for chapters with no known source, or whose pages are already indexed.
+        /// Used to lazily index pages the first time a chapter is opened.
+        /// </summary>
+        [StringLength(100)]
+        public string? FonteCapituloId { get; set; }
+
         // Relationships (Navigation Properties)
 
         /// <summary>

@@ -49,11 +49,16 @@ namespace AnyComic.Services
 
         public class ChapterImportData
         {
-            public string       ChapterNumber { get; set; } = string.Empty;
-            public string?      ChapterTitle  { get; set; }
+            public string       ChapterNumber    { get; set; } = string.Empty;
+            public string?      ChapterTitle     { get; set; }
             /// <summary>External image URLs from the source site (no local copies).</summary>
-            public List<string> PageUrls      { get; set; } = new();
+            public List<string> PageUrls         { get; set; } = new();
+            /// <summary>Chapter ID on the source site, used for lazy page indexing later.</summary>
+            public string?      FonteCapituloId  { get; set; }
         }
+
+        /// <summary>A series found while enumerating the WeebCentral catalog.</summary>
+        public record CatalogEntry(string SeriesId, string Url, string Title, string? CoverUrl);
 
         #endregion
 
@@ -65,51 +70,13 @@ namespace AnyComic.Services
         {
             try
             {
-                var seriesId = ExtractSeriesId(url);
-                if (seriesId == null)
-                {
-                    Console.WriteLine("Invalid WeebCentral URL");
-                    return null;
-                }
+                var metadata = await FetchSeriesMetadata(url);
+                if (metadata == null) return null;
 
-                // Fetch manga page as a normal browser navigation
-                var mangaHtml = await GetNavigate(url);
-                var mangaDoc = new HtmlDocument();
-                mangaDoc.LoadHtml(mangaHtml);
-
-                var title       = ExtractTitle(mangaDoc) ?? "Unknown Manga";
-                var coverUrl    = ExtractCoverUrl(mangaDoc);
-                var detailMap   = ExtractDetailMap(mangaDoc);
-                var author      = ExtractAuthor(mangaDoc, detailMap)             ?? "Unknown";
-                var year        = ExtractYear(mangaDoc, detailMap);
-                var description = ExtractDescription(mangaDoc, detailMap) ?? "Imported from WeebCentral";
-
-                Console.WriteLine($"Found manga: {title} by {author} ({year?.ToString() ?? "no year"})");
-
-                var allChapters = await GetFullChapterList(seriesId, url);
-                if (allChapters.Count == 0)
-                {
-                    Console.WriteLine("No chapters found");
-                    return null;
-                }
-
-                Console.WriteLine($"Found {allChapters.Count} chapters");
+                var (_, manga, allChapters) = metadata.Value;
 
                 var selectedChapters = FilterChaptersByRange(allChapters, chapterRange);
                 Console.WriteLine($"Indexing {selectedChapters.Count} chapters...");
-
-                var dataCriacao = year.HasValue
-                    ? new DateTime(year.Value, 1, 1)
-                    : DateTime.Now;
-
-                var manga = new Manga
-                {
-                    Titulo      = CleanTitle(title),
-                    Autor       = author,
-                    Descricao   = CleanDescription(description),
-                    DataCriacao = dataCriacao,
-                    ImagemCapa  = coverUrl ?? "/images/placeholder.jpg"
-                };
 
                 var importedChapters = new List<ChapterImportData>();
                 int index = 1;
@@ -126,9 +93,10 @@ namespace AnyComic.Services
                         {
                             importedChapters.Add(new ChapterImportData
                             {
-                                ChapterNumber = chapter.ChapterNumber.ToString(),
-                                ChapterTitle  = string.IsNullOrEmpty(chapter.ChapterTitle) ? null : chapter.ChapterTitle,
-                                PageUrls      = pageUrls
+                                ChapterNumber   = chapter.ChapterNumber.ToString(),
+                                ChapterTitle    = string.IsNullOrEmpty(chapter.ChapterTitle) ? null : chapter.ChapterTitle,
+                                PageUrls        = pageUrls,
+                                FonteCapituloId = chapter.Id
                             });
                             Console.WriteLine($"  Indexed {pageUrls.Count} pages");
                         }
@@ -161,23 +129,243 @@ namespace AnyComic.Services
             }
         }
 
+        /// <summary>
+        /// Shallow import: fetches series metadata and the full chapter list, but does NOT
+        /// index any chapter pages. Used by the catalog sweep — pages are indexed lazily
+        /// the first time a reader opens a chapter (see <see cref="IndexChapterPages"/>).
+        /// </summary>
+        public async Task<(Manga manga, List<ChapterImportData> chapters)?> ImportSeriesShallow(string url)
+        {
+            try
+            {
+                var metadata = await FetchSeriesMetadata(url);
+                if (metadata == null) return null;
+
+                var (_, manga, allChapters) = metadata.Value;
+
+                var chapters = allChapters
+                    .OrderBy(c => c.ChapterNumber)
+                    .Select(c => new ChapterImportData
+                    {
+                        ChapterNumber   = c.ChapterNumber.ToString(),
+                        ChapterTitle    = string.IsNullOrEmpty(c.ChapterTitle) ? null : c.ChapterTitle,
+                        FonteCapituloId = c.Id,
+                        PageUrls        = new List<string>()
+                    })
+                    .ToList();
+
+                return (manga, chapters);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error shallow-importing from WeebCentral: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Pages the WeebCentral search endpoint (popularity-sorted) to enumerate series for
+        /// a catalog sweep. Stops once <paramref name="maxSeries"/> is reached or a page
+        /// returns no new series. Selectors are exploratory — see console output on first run.
+        /// </summary>
+        public async Task<List<CatalogEntry>> EnumerateCatalog(int maxSeries)
+        {
+            var results = new List<CatalogEntry>();
+            var seenIds = new HashSet<string>();
+            const int pageSize = 32;
+            var referrer = $"{BASE_URL}/";
+
+            for (int offset = 0; results.Count < maxSeries; offset += pageSize)
+            {
+                try
+                {
+                    var searchUrl = $"{BASE_URL}/search/data?limit={pageSize}&offset={offset}" +
+                                     "&sort=Popularity&order=Descending&official=Any&display_mode=Full+Display";
+                    var html = await GetHtmx(searchUrl, referrer);
+                    var doc = new HtmlDocument();
+                    doc.LoadHtml(html);
+
+                    Console.WriteLine($"  [catalog] offset={offset} HTML length: {html.Length} chars");
+
+                    var seriesLinks = doc.DocumentNode.SelectNodes("//a[contains(@href, '/series/')]");
+                    if (seriesLinks == null)
+                    {
+                        Console.WriteLine("  [catalog] No series links found — stopping");
+                        break;
+                    }
+
+                    int newOnThisPage = 0;
+
+                    foreach (var link in seriesLinks)
+                    {
+                        var href = link.GetAttributeValue("href", "");
+                        var match = Regex.Match(href, @"/series/([A-Z0-9]+)(?:/([^/?""']+))?", RegexOptions.IgnoreCase);
+                        if (!match.Success) continue;
+
+                        var seriesId = match.Groups[1].Value;
+                        if (!seenIds.Add(seriesId)) continue;
+
+                        var slug = match.Groups[2].Success ? match.Groups[2].Value : "series";
+                        var absoluteUrl = href.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                            ? href
+                            : $"{BASE_URL}/series/{seriesId}/{slug}";
+
+                        var title = HtmlEntity.DeEntitize(link.GetAttributeValue("title", "").Trim());
+                        if (string.IsNullOrEmpty(title))
+                            title = HtmlEntity.DeEntitize(link.InnerText.Trim());
+
+                        var coverImg = link.SelectSingleNode(".//img") ?? link.ParentNode?.SelectSingleNode(".//img");
+                        var coverUrlRaw = coverImg?.GetAttributeValue("src", "");
+                        var coverUrl = string.IsNullOrEmpty(coverUrlRaw) ? null : coverUrlRaw;
+
+                        results.Add(new CatalogEntry(seriesId, absoluteUrl, title, coverUrl));
+                        newOnThisPage++;
+
+                        if (results.Count >= maxSeries) break;
+                    }
+
+                    Console.WriteLine($"  [catalog] offset={offset} found {newOnThisPage} new series (total {results.Count})");
+
+                    if (newOnThisPage == 0) break;
+
+                    await Task.Delay(400);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"  [catalog] Error at offset {offset}: {ex.Message}");
+                    break;
+                }
+            }
+
+            return results;
+        }
+
+        #endregion
+
+        #region Private Methods - Shared Series Fetch
+
+        /// <summary>
+        /// Fetches series metadata (title, author, cover, description, year) and the full
+        /// chapter list. Shared by <see cref="ImportFromUrl"/> and <see cref="ImportSeriesShallow"/>.
+        /// </summary>
+        private async Task<(string seriesId, Manga manga, List<WeebCentralChapter> chapters)?> FetchSeriesMetadata(string url)
+        {
+            var seriesId = ExtractSeriesId(url);
+            if (seriesId == null)
+            {
+                Console.WriteLine("Invalid WeebCentral URL");
+                return null;
+            }
+
+            // Fetch manga page as a normal browser navigation
+            var mangaHtml = await GetNavigate(url);
+            var mangaDoc = new HtmlDocument();
+            mangaDoc.LoadHtml(mangaHtml);
+
+            var title       = ExtractTitle(mangaDoc) ?? "Unknown Manga";
+            var coverUrl    = ExtractCoverUrl(mangaDoc);
+            var detailMap   = ExtractDetailMap(mangaDoc);
+            var author      = ExtractAuthor(mangaDoc, detailMap)             ?? "Unknown";
+            var year        = ExtractYear(mangaDoc, detailMap);
+            var description = ExtractDescription(mangaDoc, detailMap) ?? "Imported from WeebCentral";
+
+            Console.WriteLine($"Found manga: {title} by {author} ({year?.ToString() ?? "no year"})");
+
+            var allChapters = await GetFullChapterList(seriesId, url);
+            if (allChapters.Count == 0)
+            {
+                Console.WriteLine("No chapters found");
+                return null;
+            }
+
+            Console.WriteLine($"Found {allChapters.Count} chapters");
+
+            var dataCriacao = year.HasValue
+                ? new DateTime(year.Value, 1, 1)
+                : DateTime.Now;
+
+            var manga = new Manga
+            {
+                Titulo      = CleanTitle(title),
+                Autor       = author,
+                Descricao   = CleanDescription(description),
+                DataCriacao = dataCriacao,
+                ImagemCapa  = coverUrl ?? "/images/placeholder.jpg",
+                Fonte       = "WeebCentral",
+                FonteId     = seriesId
+            };
+
+            return (seriesId, manga, allChapters);
+        }
+
         #endregion
 
         #region Private Methods - HTTP Helpers
+
+        // Every actual HTTP request to weebcentral.com goes through SendThrottledAsync, which
+        // enforces a minimum gap between requests (regardless of how many callers are racing
+        // concurrently, e.g. the catalog sweep's parallel series fetches) and retries with
+        // backoff on 429/503. Without this, bursts of concurrent requests (catalog sweeps of
+        // 100+ series) get rate-limited by the site.
+        private readonly SemaphoreSlim _requestGate = new(1, 1);
+        private DateTime _lastRequestAtUtc = DateTime.MinValue;
+        private static readonly TimeSpan MinRequestInterval = TimeSpan.FromMilliseconds(500);
+        private const int MaxRetriesOnRateLimit = 4;
+
+        /// <summary>
+        /// Sends a request, waiting out a minimum gap since the last request and retrying
+        /// with backoff if the server responds 429 (Too Many Requests) or 503.
+        /// </summary>
+        private async Task<HttpResponseMessage> SendThrottledAsync(Func<HttpRequestMessage> buildRequest)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                await _requestGate.WaitAsync();
+                try
+                {
+                    var wait = MinRequestInterval - (DateTime.UtcNow - _lastRequestAtUtc);
+                    if (wait > TimeSpan.Zero)
+                        await Task.Delay(wait);
+                    _lastRequestAtUtc = DateTime.UtcNow;
+                }
+                finally
+                {
+                    _requestGate.Release();
+                }
+
+                var response = await _httpClient.SendAsync(buildRequest());
+
+                var statusCode = (int)response.StatusCode;
+                if (statusCode != 429 && statusCode != 503)
+                    return response;
+
+                if (attempt >= MaxRetriesOnRateLimit)
+                    return response; // give up — caller's EnsureSuccessStatusCode() will throw
+
+                var backoff = response.Headers.RetryAfter?.Delta
+                    ?? TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
+                Console.WriteLine($"  Rate limited ({statusCode}) — retrying in {backoff.TotalSeconds:0}s (attempt {attempt + 1}/{MaxRetriesOnRateLimit})...");
+                response.Dispose();
+                await Task.Delay(backoff);
+            }
+        }
 
         /// <summary>
         /// Fetches a URL as a standard browser page navigation.
         /// </summary>
         private async Task<string> GetNavigate(string url)
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url);
-            req.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
-            req.Headers.Add("Sec-Fetch-Dest", "document");
-            req.Headers.Add("Sec-Fetch-Mode", "navigate");
-            req.Headers.Add("Sec-Fetch-Site", "none");
-            req.Headers.Add("Sec-Fetch-User", "?1");
-            req.Headers.Add("Upgrade-Insecure-Requests", "1");
-            var response = await _httpClient.SendAsync(req);
+            var response = await SendThrottledAsync(() =>
+            {
+                var req = new HttpRequestMessage(HttpMethod.Get, url);
+                req.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+                req.Headers.Add("Sec-Fetch-Dest", "document");
+                req.Headers.Add("Sec-Fetch-Mode", "navigate");
+                req.Headers.Add("Sec-Fetch-Site", "none");
+                req.Headers.Add("Sec-Fetch-User", "?1");
+                req.Headers.Add("Upgrade-Insecure-Requests", "1");
+                return req;
+            });
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync();
         }
@@ -188,15 +376,18 @@ namespace AnyComic.Services
         /// </summary>
         private async Task<string> GetHtmx(string url, string referrerUrl)
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url);
-            req.Headers.Add("Accept", "*/*");
-            req.Headers.Add("Sec-Fetch-Dest", "empty");
-            req.Headers.Add("Sec-Fetch-Mode", "cors");
-            req.Headers.Add("Sec-Fetch-Site", "same-origin");
-            req.Headers.Referrer = new Uri(referrerUrl);
-            req.Headers.Add("HX-Request", "true");
-            req.Headers.Add("HX-Current-URL", referrerUrl);
-            var response = await _httpClient.SendAsync(req);
+            var response = await SendThrottledAsync(() =>
+            {
+                var req = new HttpRequestMessage(HttpMethod.Get, url);
+                req.Headers.Add("Accept", "*/*");
+                req.Headers.Add("Sec-Fetch-Dest", "empty");
+                req.Headers.Add("Sec-Fetch-Mode", "cors");
+                req.Headers.Add("Sec-Fetch-Site", "same-origin");
+                req.Headers.Referrer = new Uri(referrerUrl);
+                req.Headers.Add("HX-Request", "true");
+                req.Headers.Add("HX-Current-URL", referrerUrl);
+                return req;
+            });
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync();
         }
@@ -205,7 +396,13 @@ namespace AnyComic.Services
 
         #region Private Methods - Indexing
 
-        private async Task<List<string>> IndexChapterPages(WeebCentralChapter chapter, string mangaUrl)
+        /// <summary>
+        /// Fetches the page image URLs for a chapter. Public so it can be reused for lazy
+        /// page indexing (<c>MangaController.Read</c>) when a chapter imported by the catalog
+        /// sweep is opened for the first time. Note: <paramref name="mangaUrl"/> is unused —
+        /// only <c>chapter.Id</c> matters, kept for call-site clarity.
+        /// </summary>
+        public async Task<List<string>> IndexChapterPages(WeebCentralChapter chapter, string mangaUrl)
         {
             var pageUrls = new List<string>();
 

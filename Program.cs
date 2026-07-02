@@ -4,6 +4,12 @@ using Microsoft.AspNetCore.Http.Features;
 using AnyComic.Data;
 using AnyComic.Services;
 
+// O projeto usa DateTime.Now (Kind=Local) em todas as entidades. O Npgsql 8 por padrão só
+// aceita Kind=Utc para colunas "timestamp with time zone". Este switch restaura o
+// comportamento legado (aceita qualquer Kind, grava como está) — precisa ser setado antes
+// de qualquer uso do Npgsql.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 // Cria o builder da aplicação web
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +20,9 @@ builder.Services.AddControllersWithViews();
 
 // Serviços de domínio
 builder.Services.AddScoped<IAnimeService, AnimeService>();
+
+// Sincronização em massa do catálogo WeebCentral (estado de progresso em memória)
+builder.Services.AddSingleton<WeebCentralCatalogSyncService>();
 
 // ===== LIMITES DE UPLOAD (vídeos de episódios podem ser grandes) =====
 // O Kestrel limita o corpo da requisição a ~28 MB por padrão. Sem isso,
@@ -34,17 +43,10 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
 
-<<<<<<< Updated upstream
-// Configurar Entity Framework Core com SQL Server
-// A connection string é lida do arquivo appsettings.json
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-=======
 // Configurar Entity Framework Core com Npgsql
 // A connection string é lida do arquivo appsettings.json
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
->>>>>>> Stashed changes
 
 // Configurar autenticação baseada em cookies
 // Sistema de login que mantém o usuário autenticado entre requisições

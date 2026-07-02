@@ -48,6 +48,20 @@ namespace AnyComic.Models
         [Required(ErrorMessage = "The release date is required")]
         public DateTime DataCriacao { get; set; }
 
+        /// <summary>
+        /// Name of the external source this manga was imported from (e.g. "WeebCentral").
+        /// Null for mangas created/uploaded directly in the admin panel.
+        /// </summary>
+        [StringLength(100)]
+        public string? Fonte { get; set; }
+
+        /// <summary>
+        /// Identifier of this manga's series on the external source (e.g. WeebCentral series ID).
+        /// Used to deduplicate catalog sweeps.
+        /// </summary>
+        [StringLength(100)]
+        public string? FonteId { get; set; }
+
         // Relationships (Navigation Properties)
 
         /// <summary>

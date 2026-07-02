@@ -18,16 +18,19 @@ namespace AnyComic.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly WeebCentralCatalogSyncService _catalogSyncService;
 
         /// <summary>
         /// Constructor with dependency injection
         /// </summary>
         /// <param name="context">Database context for Entity Framework operations</param>
         /// <param name="environment">Environment information to manage file paths</param>
-        public AdminController(ApplicationDbContext context, IWebHostEnvironment environment)
+        /// <param name="catalogSyncService">Background sweep of the WeebCentral catalog</param>
+        public AdminController(ApplicationDbContext context, IWebHostEnvironment environment, WeebCentralCatalogSyncService catalogSyncService)
         {
             _context = context;
             _environment = environment;
+            _catalogSyncService = catalogSyncService;
         }
 
         /// <summary>
@@ -1952,6 +1955,7 @@ namespace AnyComic.Controllers
                             MangaId = importedManga.Id,
                             NumeroCapitulo = (int)Math.Floor(chapterNum),
                             NomeCapitulo = chapterData.ChapterTitle,
+                            FonteCapituloId = chapterData.FonteCapituloId,
                             DataCriacao = DateTime.Now
                         };
                         _context.Capitulos.Add(capitulo);
@@ -1999,6 +2003,52 @@ namespace AnyComic.Controllers
             {
                 return Json(new { success = false, message = $"Error: {ex.Message}" });
             }
+        }
+
+        /// <summary>
+        /// POST: Admin/SyncWeebCentralCatalog - kicks off a background sweep of the
+        /// WeebCentral catalog (most popular series first, up to maxSeries). Returns
+        /// immediately; progress is polled via WeebCentralSyncStatus.
+        /// </summary>
+        [HttpPost]
+        public IActionResult SyncWeebCentralCatalog(int maxSeries = 50, string? proxyUrl = null)
+        {
+            if (!IsAdmin())
+            {
+                return Json(new { success = false, message = "Unauthorized" });
+            }
+
+            if (maxSeries <= 0)
+            {
+                return Json(new { success = false, message = "maxSeries must be greater than zero" });
+            }
+
+            var started = _catalogSyncService.Start(maxSeries, proxyUrl);
+            return Json(started
+                ? new { success = true, message = "Catalog sync started" }
+                : new { success = false, message = "A catalog sync is already running" });
+        }
+
+        /// <summary>
+        /// GET: Admin/WeebCentralSyncStatus - progress of the background catalog sweep, for polling.
+        /// </summary>
+        [HttpGet]
+        public IActionResult WeebCentralSyncStatus()
+        {
+            if (!IsAdmin())
+            {
+                return Json(new { success = false, message = "Unauthorized" });
+            }
+
+            var status = _catalogSyncService.GetStatus();
+            return Json(new
+            {
+                success = true,
+                running = status.Running,
+                processed = status.Processed,
+                total = status.Total,
+                errors = status.Errors
+            });
         }
 
     }
