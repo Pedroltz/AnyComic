@@ -2,7 +2,7 @@ using AnyComic.Application.Common;
 using AnyComic.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace AnyComic.Application.Manga;
+namespace AnyComic.Application.Mangas;
 
 public interface IMangaFavoriteService
 {

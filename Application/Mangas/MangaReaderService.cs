@@ -4,7 +4,7 @@ using AnyComic.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
-namespace AnyComic.Application.Manga;
+namespace AnyComic.Application.Mangas;
 
 public interface IMangaReaderService
 {

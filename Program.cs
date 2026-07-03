@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.Features;
 using AnyComic.Data;
 using AnyComic.Services;
 using AnyComic.Application.Common;
-using AnyComic.Application.Manga;
+using AnyComic.Application.Mangas;
 using AnyComic.Application.WeebCentral;
 using AnyComic.Domain.Interfaces;
 using AnyComic.Infrastructure.Scraping;

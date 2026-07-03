@@ -3,7 +3,7 @@ using AnyComic.Models;
 using AnyComic.Models.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
-namespace AnyComic.Application.Manga;
+namespace AnyComic.Application.Mangas;
 
 public interface IMangaReviewService
 {

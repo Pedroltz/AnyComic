@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using AnyComic.Models;
 using AnyComic.Models.ViewModels;
 
-namespace AnyComic.Application.Manga;
+namespace AnyComic.Application.Mangas;
 
 /// <summary>Everything the Manga/Details view needs, computed in the application layer.</summary>
 public class MangaDetailsResult
