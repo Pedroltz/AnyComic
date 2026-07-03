@@ -9,7 +9,13 @@ public interface IMangaCatalogService
     Task<MangaCatalogViewModel> GetCatalogAsync(
         string? searchTerm, string? autor, DateTime? dataInicio, DateTime? dataFim,
         string? sortBy, int page);
+
+    /// <summary>Lightweight title matches for the header autocomplete (max <paramref name="limit"/>).</summary>
+    Task<List<MangaSuggestion>> SearchSuggestionsAsync(string term, int limit);
 }
+
+/// <summary>Minimal manga projection for the header search dropdown.</summary>
+public record MangaSuggestion(int Id, string Titulo, string Autor, string? ImagemCapa);
 
 /// <summary>
 /// Builds the paged manga catalog listing. Counts first, then fetches only the requested page,
@@ -17,7 +23,7 @@ public interface IMangaCatalogService
 /// </summary>
 public class MangaCatalogService : IMangaCatalogService
 {
-    private const int CatalogPageSize = 24;
+    private const int CatalogPageSize = 100;
 
     private readonly IApplicationDbContext _db;
 
@@ -88,5 +94,20 @@ public class MangaCatalogService : IMangaCatalogService
             DataFim    = dataFim,
             SortBy     = sortBy
         };
+    }
+
+    public async Task<List<MangaSuggestion>> SearchSuggestionsAsync(string term, int limit)
+    {
+        if (string.IsNullOrWhiteSpace(term))
+            return new List<MangaSuggestion>();
+
+        term = term.Trim();
+
+        return await _db.Mangas
+            .Where(m => m.Titulo.Contains(term))
+            .OrderBy(m => m.Titulo)
+            .Take(limit)
+            .Select(m => new MangaSuggestion(m.Id, m.Titulo, m.Autor, m.ImagemCapa))
+            .ToListAsync();
     }
 }

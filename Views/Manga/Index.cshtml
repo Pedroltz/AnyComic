@@ -131,18 +131,32 @@
         </div>
     </div>
 
-    <!-- Results Count -->
+    <!-- Results Count + Layout Toggle -->
     @if (Model.TotalCount > 0)
     {
-        <div class="mb-3" style="color: var(--text-secondary); font-size: 14px;">
-            <strong>@Model.TotalCount</strong> manga(s) found — page @Model.Page of @Model.TotalPages
+        <div class="catalog-toolbar mb-3">
+            <div class="catalog-count">
+                <strong>@Model.TotalCount</strong> manga(s) found — page @Model.Page of @Model.TotalPages
+            </div>
+            <div class="layout-toggle" id="layoutToggle" role="group" aria-label="Layout">
+                <button type="button" class="layout-toggle-btn" data-view="grid" title="Grid view" aria-label="Grid view">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+                    </svg>
+                </button>
+                <button type="button" class="layout-toggle-btn" data-view="list" title="List view" aria-label="List view">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM2 3.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm0 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm0 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     }
 
     @if (Model.Mangas.Any())
     {
         <!-- Manga Grid - HotComics Style -->
-        <div class="manga-grid fade-in">
+        <div class="manga-grid fade-in" id="mangaGrid">
             @foreach (var manga in Model.Mangas)
             {
                 <a asp-controller="Manga" asp-action="Details" asp-route-id="@manga.Id" style="text-decoration: none; color: inherit;">
@@ -272,35 +286,109 @@
         margin: 32px 0 8px;
     }
     .page-link-btn {
-        min-width: 38px;
-        padding: 6px 12px;
+        min-width: 40px;
+        padding: 8px 14px;
         text-align: center;
-        border-radius: 6px;
+        border-radius: 8px;
         border: 1px solid var(--border-color);
-        background: var(--bg-primary);
-        color: var(--text-primary);
+        background: var(--bg-darker);
+        color: var(--text-secondary);
         text-decoration: none;
         font-size: 14px;
-        transition: background-color .2s, border-color .2s;
+        font-weight: 500;
+        transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s;
     }
     .page-link-btn:hover {
-        border-color: #007bff;
-        background: rgba(0, 123, 255, .12);
+        border-color: var(--text-muted);
+        background: rgba(255, 255, 255, .05);
+        color: var(--text-primary);
     }
     .page-link-btn.active {
-        background: #007bff;
-        border-color: #007bff;
-        color: #fff;
+        background: var(--bg-light);
+        border-color: var(--text-muted);
+        color: var(--text-primary);
         font-weight: 600;
         pointer-events: none;
     }
     .page-link-btn.disabled {
-        opacity: .45;
+        opacity: .4;
         pointer-events: none;
     }
     .page-ellipsis {
         padding: 6px 4px;
         color: var(--text-secondary);
+    }
+
+    /* Catalog toolbar + layout toggle */
+    .catalog-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    .layout-toggle {
+        display: inline-flex;
+        gap: 4px;
+        background: rgba(255, 255, 255, .05);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 3px;
+    }
+    .layout-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 30px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background .15s, color .15s;
+    }
+    .layout-toggle-btn:hover { color: var(--text-primary); }
+    .layout-toggle-btn.active { background: var(--primary-red); color: #fff; }
+
+    /* List view — larger cards with full, larger titles */
+    .manga-grid.list-view {
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    }
+    .manga-grid.list-view .manga-card { flex-direction: row; }
+    .manga-grid.list-view .manga-card-image {
+        width: 92px;
+        padding-top: 0;
+        height: 132px;
+        flex-shrink: 0;
+    }
+    .manga-grid.list-view .manga-card-body {
+        justify-content: center;
+        padding: 14px 16px;
+    }
+    .manga-grid.list-view .manga-card-title {
+        font-size: 18px;
+        line-height: 1.35;
+        margin-bottom: 8px;
+        -webkit-line-clamp: unset;
+        display: block;
+        overflow: visible;
+        white-space: normal;
+        min-height: 0;
+    }
+    .manga-grid.list-view .manga-card-author {
+        font-size: 13px;
+        -webkit-line-clamp: unset;
+        display: block;
+        overflow: visible;
+        min-height: 0;
+        margin-bottom: 8px;
+    }
+    .manga-grid.list-view .manga-card-info { margin-top: 0; }
+    @@media (max-width: 575px) {
+        .manga-grid.list-view { grid-template-columns: 1fr; }
     }
 
     /* Fade-in animation for manga grid */
@@ -423,6 +511,26 @@
                 sortByLabel.textContent = this.getAttribute('data-label');
             });
         });
+
+        // Layout toggle (grid / list) — remembered across visits
+        var grid = document.getElementById('mangaGrid');
+        var layoutBtns = document.querySelectorAll('.layout-toggle-btn');
+        if (grid && layoutBtns.length) {
+            var applyView = function (view) {
+                grid.classList.toggle('list-view', view === 'list');
+                layoutBtns.forEach(function (b) {
+                    b.classList.toggle('active', b.getAttribute('data-view') === view);
+                });
+            };
+            applyView(localStorage.getItem('mangaView') || 'grid');
+            layoutBtns.forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var view = b.getAttribute('data-view');
+                    localStorage.setItem('mangaView', view);
+                    applyView(view);
+                });
+            });
+        }
 
         // Mobile filters toggle
         var toggle = document.getElementById('filtersToggle');

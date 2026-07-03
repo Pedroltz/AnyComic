@@ -33,6 +33,9 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<Ap
 // Infraestrutura de scraping (factory isola a criação com proxy escolhido em runtime)
 builder.Services.AddSingleton<IWeebCentralScraperFactory, WeebCentralScraperFactory>();
 
+// Serviços de aplicação — Home
+builder.Services.AddScoped<AnyComic.Application.Home.IHomeService, AnyComic.Application.Home.HomeService>();
+
 // Serviços de aplicação — Manga
 builder.Services.AddScoped<IMangaCatalogService, MangaCatalogService>();
 builder.Services.AddScoped<IMangaReaderService, MangaReaderService>();

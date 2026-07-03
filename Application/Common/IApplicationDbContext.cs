@@ -16,6 +16,7 @@ public interface IApplicationDbContext
     DbSet<Favorito> Favoritos { get; }
     DbSet<ReviewManga> ReviewsManga { get; }
     DbSet<ReviewReplyManga> ReviewRepliesManga { get; }
+    DbSet<Banner> Banners { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

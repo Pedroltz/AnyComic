@@ -46,6 +46,19 @@ namespace AnyComic.Controllers
             return View(viewModel);
         }
 
+        // GET: Manga/Suggest?term=... — live autocomplete for the header search
+        [HttpGet]
+        public async Task<IActionResult> Suggest(string? term)
+        {
+            if (string.IsNullOrWhiteSpace(term) || term.Trim().Length < 2)
+            {
+                return Json(Array.Empty<object>());
+            }
+
+            var results = await _catalog.SearchSuggestionsAsync(term, 8);
+            return Json(results);
+        }
+
         // GET: Manga/Details/5
         public async Task<IActionResult> Details(int? id)
         {

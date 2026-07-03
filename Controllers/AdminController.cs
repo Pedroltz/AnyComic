@@ -1162,10 +1162,17 @@ namespace AnyComic.Controllers
 
                 banner.ImagemUrl = $"/uploads/carousel/{uniqueFileName}";
             }
-            else if (tipo == 1 && manga != null && string.IsNullOrEmpty(banner.ImagemUrl))
+            else if (tipo == 1 && manga != null)
             {
-                // If showcase and no existing image, use manga cover
-                banner.ImagemUrl = manga.ImagemCapa;
+                // Showcase without a new upload: keep a custom uploaded background if one exists,
+                // otherwise follow the (possibly newly selected) manga cover — so changing the
+                // manga also refreshes the background instead of keeping the previous cover.
+                var hasCustomImage = !string.IsNullOrEmpty(banner.ImagemUrl)
+                                     && banner.ImagemUrl.StartsWith("/uploads/carousel/");
+                if (!hasCustomImage)
+                {
+                    banner.ImagemUrl = manga.ImagemCapa;
+                }
             }
 
             banner.Titulo = tipo == 1 && string.IsNullOrEmpty(titulo) && manga != null ? manga.Titulo : titulo ?? string.Empty;
