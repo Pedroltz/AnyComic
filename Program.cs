@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using AnyComic.Data;
 using AnyComic.Services;
+using AnyComic.Application.Common;
+using AnyComic.Application.Manga;
+using AnyComic.Application.WeebCentral;
+using AnyComic.Domain.Interfaces;
+using AnyComic.Infrastructure.Scraping;
 
 // O projeto usa DateTime.Now (Kind=Local) em todas as entidades. O Npgsql 8 por padrão só
 // aceita Kind=Utc para colunas "timestamp with time zone". Este switch restaura o
@@ -21,8 +26,23 @@ builder.Services.AddControllersWithViews();
 // Serviços de domínio
 builder.Services.AddScoped<IAnimeService, AnimeService>();
 
-// Sincronização em massa do catálogo WeebCentral (estado de progresso em memória)
-builder.Services.AddSingleton<WeebCentralCatalogSyncService>();
+// ===== Clean Architecture — fatia Manga + WeebCentral =====
+// Porta de persistência (Application depende da interface, não do DbContext concreto)
+builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+// Infraestrutura de scraping (factory isola a criação com proxy escolhido em runtime)
+builder.Services.AddSingleton<IWeebCentralScraperFactory, WeebCentralScraperFactory>();
+
+// Serviços de aplicação — Manga
+builder.Services.AddScoped<IMangaCatalogService, MangaCatalogService>();
+builder.Services.AddScoped<IMangaReaderService, MangaReaderService>();
+builder.Services.AddScoped<IMangaFavoriteService, MangaFavoriteService>();
+builder.Services.AddScoped<IMangaReviewService, MangaReviewService>();
+
+// Serviços de aplicação — WeebCentral
+builder.Services.AddScoped<IWeebCentralImportService, WeebCentralImportService>();
+// Sincronização em massa do catálogo (estado de progresso em memória → singleton)
+builder.Services.AddSingleton<ICatalogSyncService, CatalogSyncService>();
 
 // ===== LIMITES DE UPLOAD (vídeos de episódios podem ser grandes) =====
 // O Kestrel limita o corpo da requisição a ~28 MB por padrão. Sem isso,

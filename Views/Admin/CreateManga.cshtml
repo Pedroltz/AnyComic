@@ -106,14 +106,28 @@
                                             <div class="form-text mb-2">
                                                 Sweeps the WeebCentral catalog (most popular series first). Saves only
                                                 metadata and chapter lists — chapter pages are indexed the first time
-                                                a reader opens them. Safe to run repeatedly (already-imported series are skipped).
+                                                a reader opens them. Safe to run repeatedly: new series are imported and,
+                                                when "atualizar séries existentes" is on, already-imported series are
+                                                revisited to pull any newly-released chapters.
                                             </div>
                                             <div class="input-group">
                                                 <span class="input-group-text" style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">Max series</span>
-                                                <input type="number" class="form-control" id="catalogMaxSeries" value="20" min="1" max="5000" style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
+                                                <input type="number" class="form-control" id="catalogMaxSeries" value="20" min="1" max="100000" style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
                                                 <button type="button" class="btn btn-primary" id="btnSyncCatalog">
                                                     Sincronizar catálogo
                                                 </button>
+                                            </div>
+                                            <div class="form-check mt-2">
+                                                <input class="form-check-input" type="checkbox" id="catalogImportAll">
+                                                <label class="form-check-label" for="catalogImportAll" style="color: var(--text-primary);">
+                                                    Importar catálogo completo (ignorar limite — pode levar horas)
+                                                </label>
+                                            </div>
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input" type="checkbox" id="catalogRefreshExisting" checked>
+                                                <label class="form-check-label" for="catalogRefreshExisting" style="color: var(--text-primary);">
+                                                    Atualizar séries existentes (novos capítulos)
+                                                </label>
                                             </div>
 
                                             <div id="catalogSyncProgress" class="mt-3" style="display: none;">
@@ -546,10 +560,16 @@
 
     // Bulk Catalog Sync (WeebCentral)
     const btnSyncCatalog = document.getElementById('btnSyncCatalog');
+    const catalogImportAll = document.getElementById('catalogImportAll');
+    const catalogMaxSeriesInput = document.getElementById('catalogMaxSeries');
     let catalogSyncPollHandle = null;
 
+    // Disable the max-series field when importing the whole catalog.
+    catalogImportAll.addEventListener('change', function() {
+        catalogMaxSeriesInput.disabled = catalogImportAll.checked;
+    });
+
     function pollCatalogSyncStatus() {
-        const progressContainer = document.getElementById('catalogSyncProgress');
         const progressBar = document.getElementById('catalogSyncProgressBar');
         const statusText = document.getElementById('catalogSyncStatusText');
         const percentBadge = document.getElementById('catalogSyncPercent');
@@ -565,11 +585,13 @@
                 progressBar.style.width = pct + '%';
                 percentBadge.textContent = `${status.processed}/${status.total}`;
 
+                const counts = `${status.newSeries} novas séries, ${status.updatedSeries} atualizadas, ${status.newChapters} capítulos novos`;
+
                 if (status.running) {
-                    statusText.textContent = 'Syncing catalog...';
+                    statusText.textContent = `Sincronizando... ${counts}`;
                 } else {
                     clearInterval(catalogSyncPollHandle);
-                    statusText.textContent = `Sync complete — ${status.processed} processed, ${status.errors} error(s)`;
+                    statusText.textContent = `Concluído — ${counts}, ${status.errors} erro(s)`;
                     btnSyncCatalog.disabled = false;
                     btnSyncCatalog.textContent = 'Sincronizar catálogo';
                 }
@@ -583,17 +605,21 @@
     }
 
     btnSyncCatalog.addEventListener('click', async function() {
-        const maxSeries = parseInt(document.getElementById('catalogMaxSeries').value, 10) || 20;
+        const importAll = catalogImportAll.checked;
+        const maxSeries = importAll ? 0 : (parseInt(catalogMaxSeriesInput.value, 10) || 20);
+        const refreshExisting = document.getElementById('catalogRefreshExisting').checked;
         const proxyUrl = document.getElementById('weebcentralProxyUrl').value.trim();
 
-        if (!confirm(`Start a catalog sync of up to ${maxSeries} series from WeebCentral?`)) {
+        const scopeText = importAll ? 'o catálogo completo' : `até ${maxSeries} séries`;
+        const refreshText = refreshExisting ? ' e atualizar séries existentes com novos capítulos' : '';
+        if (!confirm(`Sincronizar ${scopeText} do WeebCentral${refreshText}?`)) {
             return;
         }
 
         btnSyncCatalog.disabled = true;
         btnSyncCatalog.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Starting...';
 
-        const params = new URLSearchParams({ maxSeries: maxSeries });
+        const params = new URLSearchParams({ maxSeries: maxSeries, refreshExisting: refreshExisting });
         if (proxyUrl) params.append('proxyUrl', proxyUrl);
 
         try {

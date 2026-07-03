@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using AnyComic.Models;
+using AnyComic.Application.Common;
 
 namespace AnyComic.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

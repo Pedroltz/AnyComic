@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using AnyComic.Data;
 using AnyComic.Models;
 using AnyComic.Services;
+using AnyComic.Application.WeebCentral;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -18,7 +19,8 @@ namespace AnyComic.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
-        private readonly WeebCentralCatalogSyncService _catalogSyncService;
+        private readonly ICatalogSyncService _catalogSyncService;
+        private readonly IWeebCentralImportService _weebCentralImportService;
 
         /// <summary>
         /// Constructor with dependency injection
@@ -26,11 +28,17 @@ namespace AnyComic.Controllers
         /// <param name="context">Database context for Entity Framework operations</param>
         /// <param name="environment">Environment information to manage file paths</param>
         /// <param name="catalogSyncService">Background sweep of the WeebCentral catalog</param>
-        public AdminController(ApplicationDbContext context, IWebHostEnvironment environment, WeebCentralCatalogSyncService catalogSyncService)
+        /// <param name="weebCentralImportService">Single-URL WeebCentral import</param>
+        public AdminController(
+            ApplicationDbContext context,
+            IWebHostEnvironment environment,
+            ICatalogSyncService catalogSyncService,
+            IWeebCentralImportService weebCentralImportService)
         {
             _context = context;
             _environment = environment;
             _catalogSyncService = catalogSyncService;
+            _weebCentralImportService = weebCentralImportService;
         }
 
         /// <summary>
@@ -1922,82 +1930,12 @@ namespace AnyComic.Controllers
 
             try
             {
-                var importer = new WeebCentralImporter(request.ProxyUrl);
-                var result = await importer.ImportFromUrl(
+                var result = await _weebCentralImportService.ImportAsync(
                     request.Url,
-                    request.ChapterRange ?? "all"
-                );
+                    request.ChapterRange ?? "all",
+                    request.ProxyUrl);
 
-                if (result.HasValue)
-                {
-                    var importedManga = result.Value.manga;
-                    var chapters = result.Value.chapters;
-
-                    if (chapters.Count == 0)
-                    {
-                        return Json(new { success = false, message = "No chapters were successfully indexed" });
-                    }
-
-                    // Save manga to database
-                    _context.Mangas.Add(importedManga);
-                    await _context.SaveChangesAsync();
-
-                    int totalPages = 0;
-                    var chapterSummaries = new List<string>();
-
-                    foreach (var chapterData in chapters)
-                    {
-                        if (!decimal.TryParse(chapterData.ChapterNumber, out decimal chapterNum))
-                            chapterNum = 0;
-
-                        var capitulo = new Capitulo
-                        {
-                            MangaId = importedManga.Id,
-                            NumeroCapitulo = (int)Math.Floor(chapterNum),
-                            NomeCapitulo = chapterData.ChapterTitle,
-                            FonteCapituloId = chapterData.FonteCapituloId,
-                            DataCriacao = DateTime.Now
-                        };
-                        _context.Capitulos.Add(capitulo);
-                        await _context.SaveChangesAsync();
-
-                        int pageNumber = 1;
-                        foreach (var pageUrl in chapterData.PageUrls)
-                        {
-                            var paginaManga = new PaginaManga
-                            {
-                                MangaId = importedManga.Id,
-                                CapituloId = capitulo.Id,
-                                NumeroPagina = pageNumber++,
-                                CaminhoImagem = pageUrl,
-                                DataUpload = DateTime.Now
-                            };
-                            _context.PaginasMangas.Add(paginaManga);
-                        }
-
-                        await _context.SaveChangesAsync();
-
-                        totalPages += chapterData.PageUrls.Count;
-                        chapterSummaries.Add($"Chapter {chapterData.ChapterNumber}: {chapterData.PageUrls.Count} pages");
-                    }
-
-                    return Json(new
-                    {
-                        success = true,
-                        mangaId = importedManga.Id,
-                        titulo = importedManga.Titulo,
-                        autor = importedManga.Autor,
-                        descricao = importedManga.Descricao,
-                        totalChapters = chapters.Count,
-                        totalPages = totalPages,
-                        chapters = chapterSummaries,
-                        message = $"Manga '{importedManga.Titulo}' imported successfully with {chapters.Count} chapter(s) and {totalPages} total pages!"
-                    });
-                }
-                else
-                {
-                    return Json(new { success = false, message = "Failed to import from WeebCentral. Please check the URL and try again." });
-                }
+                return Json(result);
             }
             catch (Exception ex)
             {
@@ -2011,19 +1949,21 @@ namespace AnyComic.Controllers
         /// immediately; progress is polled via WeebCentralSyncStatus.
         /// </summary>
         [HttpPost]
-        public IActionResult SyncWeebCentralCatalog(int maxSeries = 50, string? proxyUrl = null)
+        public IActionResult SyncWeebCentralCatalog(int maxSeries = 50, bool refreshExisting = true, string? proxyUrl = null)
         {
             if (!IsAdmin())
             {
                 return Json(new { success = false, message = "Unauthorized" });
             }
 
+            // maxSeries <= 0 means "import the whole catalog" — EnumerateCatalog stops
+            // on its own once a page returns no new series.
             if (maxSeries <= 0)
             {
-                return Json(new { success = false, message = "maxSeries must be greater than zero" });
+                maxSeries = int.MaxValue;
             }
 
-            var started = _catalogSyncService.Start(maxSeries, proxyUrl);
+            var started = _catalogSyncService.Start(maxSeries, refreshExisting, proxyUrl);
             return Json(started
                 ? new { success = true, message = "Catalog sync started" }
                 : new { success = false, message = "A catalog sync is already running" });
@@ -2047,7 +1987,10 @@ namespace AnyComic.Controllers
                 running = status.Running,
                 processed = status.Processed,
                 total = status.Total,
-                errors = status.Errors
+                errors = status.Errors,
+                newSeries = status.NewSeries,
+                updatedSeries = status.UpdatedSeries,
+                newChapters = status.NewChapters
             });
         }
 
