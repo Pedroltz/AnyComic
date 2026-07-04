@@ -1,7 +1,12 @@
-@model IEnumerable<AnyComic.Models.Manga>
+@model AnyComic.Models.ViewModels.MangaCatalogViewModel
 
 @{
     ViewData["Title"] = "Manga Catalog";
+
+    // Windowed pager: pages shown on each side of the current page.
+    const int pagerWindow = 2;
+    var startPage = Math.Max(1, Model.Page - pagerWindow);
+    var endPage = Math.Min(Model.TotalPages, Model.Page + pagerWindow);
 }
 
 <!-- Manga Catalog Page - HotComics Style -->
@@ -126,19 +131,33 @@
         </div>
     </div>
 
-    <!-- Results Count -->
-    @if (Model != null && Model.Any())
+    <!-- Results Count + Layout Toggle -->
+    @if (Model.TotalCount > 0)
     {
-        <div class="mb-3" style="color: var(--text-secondary); font-size: 14px;">
-            <strong>@Model.Count()</strong> manga(s) found
+        <div class="catalog-toolbar mb-3">
+            <div class="catalog-count">
+                <strong>@Model.TotalCount</strong> manga(s) found — page @Model.Page of @Model.TotalPages
+            </div>
+            <div class="layout-toggle" id="layoutToggle" role="group" aria-label="Layout">
+                <button type="button" class="layout-toggle-btn" data-view="grid" title="Grid view" aria-label="Grid view">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+                    </svg>
+                </button>
+                <button type="button" class="layout-toggle-btn" data-view="list" title="List view" aria-label="List view">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM2 3.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm0 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm0 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     }
 
-    @if (Model != null && Model.Any())
+    @if (Model.Mangas.Any())
     {
         <!-- Manga Grid - HotComics Style -->
-        <div class="manga-grid fade-in">
-            @foreach (var manga in Model)
+        <div class="manga-grid fade-in" id="mangaGrid">
+            @foreach (var manga in Model.Mangas)
             {
                 <a asp-controller="Manga" asp-action="Details" asp-route-id="@manga.Id" style="text-decoration: none; color: inherit;">
                     <div class="manga-card">
@@ -158,13 +177,13 @@
                                 </div>
                             }
                             <!-- Chapter Count Badge -->
-                            @if (manga.Capitulos.Any())
+                            @if (manga.ChapterCount > 0)
                             {
                                 <div style="position: absolute; top: 8px; right: 8px; background: rgba(0, 123, 255, 0.95); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-top; margin-right: 2px;">
                                         <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
                                     </svg>
-                                    @manga.Capitulos.Count Ch.
+                                    @manga.ChapterCount Ch.
                                 </div>
                             }
                         </div>
@@ -184,6 +203,63 @@
                 </a>
             }
         </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="manga-pagination" aria-label="Manga catalog pages">
+                <a class="page-link-btn @(Model.HasPrevious ? "" : "disabled")"
+                   asp-action="Index"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-searchTerm="@Model.SearchTerm" asp-route-autor="@Model.Autor"
+                   asp-route-dataInicio="@(Model.DataInicio?.ToString("yyyy-MM-dd"))"
+                   asp-route-dataFim="@(Model.DataFim?.ToString("yyyy-MM-dd"))"
+                   asp-route-sortBy="@Model.SortBy">‹ Prev</a>
+
+                @if (startPage > 1)
+                {
+                    <a class="page-link-btn" asp-action="Index" asp-route-page="1"
+                       asp-route-searchTerm="@Model.SearchTerm" asp-route-autor="@Model.Autor"
+                       asp-route-dataInicio="@(Model.DataInicio?.ToString("yyyy-MM-dd"))"
+                       asp-route-dataFim="@(Model.DataFim?.ToString("yyyy-MM-dd"))"
+                       asp-route-sortBy="@Model.SortBy">1</a>
+                    @if (startPage > 2)
+                    {
+                        <span class="page-ellipsis">…</span>
+                    }
+                }
+
+                @for (int i = startPage; i <= endPage; i++)
+                {
+                    <a class="page-link-btn @(i == Model.Page ? "active" : "")"
+                       asp-action="Index" asp-route-page="@i"
+                       asp-route-searchTerm="@Model.SearchTerm" asp-route-autor="@Model.Autor"
+                       asp-route-dataInicio="@(Model.DataInicio?.ToString("yyyy-MM-dd"))"
+                       asp-route-dataFim="@(Model.DataFim?.ToString("yyyy-MM-dd"))"
+                       asp-route-sortBy="@Model.SortBy">@i</a>
+                }
+
+                @if (endPage < Model.TotalPages)
+                {
+                    @if (endPage < Model.TotalPages - 1)
+                    {
+                        <span class="page-ellipsis">…</span>
+                    }
+                    <a class="page-link-btn" asp-action="Index" asp-route-page="@Model.TotalPages"
+                       asp-route-searchTerm="@Model.SearchTerm" asp-route-autor="@Model.Autor"
+                       asp-route-dataInicio="@(Model.DataInicio?.ToString("yyyy-MM-dd"))"
+                       asp-route-dataFim="@(Model.DataFim?.ToString("yyyy-MM-dd"))"
+                       asp-route-sortBy="@Model.SortBy">@Model.TotalPages</a>
+                }
+
+                <a class="page-link-btn @(Model.HasNext ? "" : "disabled")"
+                   asp-action="Index"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-searchTerm="@Model.SearchTerm" asp-route-autor="@Model.Autor"
+                   asp-route-dataInicio="@(Model.DataInicio?.ToString("yyyy-MM-dd"))"
+                   asp-route-dataFim="@(Model.DataFim?.ToString("yyyy-MM-dd"))"
+                   asp-route-sortBy="@Model.SortBy">Next ›</a>
+            </nav>
+        }
     }
     else
     {
@@ -200,6 +276,121 @@
 </div>
 
 <style>
+    /* Pagination */
+    .manga-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin: 32px 0 8px;
+    }
+    .page-link-btn {
+        min-width: 40px;
+        padding: 8px 14px;
+        text-align: center;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-darker);
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s;
+    }
+    .page-link-btn:hover {
+        border-color: var(--text-muted);
+        background: rgba(255, 255, 255, .05);
+        color: var(--text-primary);
+    }
+    .page-link-btn.active {
+        background: var(--bg-light);
+        border-color: var(--text-muted);
+        color: var(--text-primary);
+        font-weight: 600;
+        pointer-events: none;
+    }
+    .page-link-btn.disabled {
+        opacity: .4;
+        pointer-events: none;
+    }
+    .page-ellipsis {
+        padding: 6px 4px;
+        color: var(--text-secondary);
+    }
+
+    /* Catalog toolbar + layout toggle */
+    .catalog-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    .layout-toggle {
+        display: inline-flex;
+        gap: 4px;
+        background: rgba(255, 255, 255, .05);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 3px;
+    }
+    .layout-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 30px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background .15s, color .15s;
+    }
+    .layout-toggle-btn:hover { color: var(--text-primary); }
+    .layout-toggle-btn.active { background: var(--primary-red); color: #fff; }
+
+    /* List view — larger cards with full, larger titles */
+    .manga-grid.list-view {
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    }
+    .manga-grid.list-view .manga-card { flex-direction: row; }
+    .manga-grid.list-view .manga-card-image {
+        width: 92px;
+        padding-top: 0;
+        height: 132px;
+        flex-shrink: 0;
+    }
+    .manga-grid.list-view .manga-card-body {
+        justify-content: center;
+        padding: 14px 16px;
+    }
+    .manga-grid.list-view .manga-card-title {
+        font-size: 18px;
+        line-height: 1.35;
+        margin-bottom: 8px;
+        -webkit-line-clamp: unset;
+        display: block;
+        overflow: visible;
+        white-space: normal;
+        min-height: 0;
+    }
+    .manga-grid.list-view .manga-card-author {
+        font-size: 13px;
+        -webkit-line-clamp: unset;
+        display: block;
+        overflow: visible;
+        min-height: 0;
+        margin-bottom: 8px;
+    }
+    .manga-grid.list-view .manga-card-info { margin-top: 0; }
+    @@media (max-width: 575px) {
+        .manga-grid.list-view { grid-template-columns: 1fr; }
+    }
+
     /* Fade-in animation for manga grid */
     .fade-in {
         animation: fadeIn 0.5s ease-in;
@@ -320,6 +511,26 @@
                 sortByLabel.textContent = this.getAttribute('data-label');
             });
         });
+
+        // Layout toggle (grid / list) — remembered across visits
+        var grid = document.getElementById('mangaGrid');
+        var layoutBtns = document.querySelectorAll('.layout-toggle-btn');
+        if (grid && layoutBtns.length) {
+            var applyView = function (view) {
+                grid.classList.toggle('list-view', view === 'list');
+                layoutBtns.forEach(function (b) {
+                    b.classList.toggle('active', b.getAttribute('data-view') === view);
+                });
+            };
+            applyView(localStorage.getItem('mangaView') || 'grid');
+            layoutBtns.forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var view = b.getAttribute('data-view');
+                    localStorage.setItem('mangaView', view);
+                    applyView(view);
+                });
+            });
+        }
 
         // Mobile filters toggle
         var toggle = document.getElementById('filtersToggle');

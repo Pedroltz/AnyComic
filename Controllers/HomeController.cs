@@ -1,44 +1,25 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using AnyComic.Models;
-using AnyComic.Data;
+using AnyComic.Application.Home;
 
 namespace AnyComic.Controllers;
 
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private readonly ApplicationDbContext _context;
+    private readonly IHomeService _home;
 
-    public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
+    public HomeController(ILogger<HomeController> logger, IHomeService home)
     {
         _logger = logger;
-        _context = context;
+        _home = home;
     }
 
     public async Task<IActionResult> Index()
     {
-        // Get newest mangas (last 10 added)
-        var newest = await _context.Mangas
-            .OrderByDescending(m => m.DataCriacao)
-            .Take(10)
-            .ToListAsync();
-
-        // Get all mangas for the view
-        var mangas = await _context.Mangas.ToListAsync();
-
-        // Get active banners ordered by display order (include Manga for showcase type)
-        var banners = await _context.Banners
-            .Include(b => b.Manga)
-            .Where(b => b.Ativo)
-            .OrderBy(b => b.Ordem)
-            .ToListAsync();
-
-        ViewBag.Banners = banners;
-        ViewBag.NewestMangas = newest;
-
-        return View(mangas);
+        var viewModel = await _home.GetHomeAsync();
+        return View(viewModel);
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

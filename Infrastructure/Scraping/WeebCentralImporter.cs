@@ -1,16 +1,17 @@
 using AnyComic.Models;
+using AnyComic.Domain.Interfaces;
 using HtmlAgilityPack;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace AnyComic.Services
+namespace AnyComic.Infrastructure.Scraping
 {
     /// <summary>
     /// Imports manga metadata and chapter page URLs from weebcentral.com.
     /// Images are NOT downloaded — external URLs are indexed and stored directly.
     /// WeebCentral uses HTMX for dynamic content; sub-requests need HX-Request headers.
     /// </summary>
-    public class WeebCentralImporter
+    public class WeebCentralImporter : IWeebCentralScraper
     {
         private readonly HttpClient _httpClient;
         private const string BASE_URL = "https://weebcentral.com";
@@ -37,30 +38,6 @@ namespace AnyComic.Services
             _httpClient.DefaultRequestHeaders.Add("Sec-Ch-Ua-Mobile", "?0");
             _httpClient.DefaultRequestHeaders.Add("Sec-Ch-Ua-Platform", "\"Windows\"");
         }
-
-        #region DTOs
-
-        public class WeebCentralChapter
-        {
-            public string  Id             { get; set; } = string.Empty;
-            public decimal ChapterNumber  { get; set; }
-            public string  ChapterTitle   { get; set; } = string.Empty;
-        }
-
-        public class ChapterImportData
-        {
-            public string       ChapterNumber    { get; set; } = string.Empty;
-            public string?      ChapterTitle     { get; set; }
-            /// <summary>External image URLs from the source site (no local copies).</summary>
-            public List<string> PageUrls         { get; set; } = new();
-            /// <summary>Chapter ID on the source site, used for lazy page indexing later.</summary>
-            public string?      FonteCapituloId  { get; set; }
-        }
-
-        /// <summary>A series found while enumerating the WeebCentral catalog.</summary>
-        public record CatalogEntry(string SeriesId, string Url, string Title, string? CoverUrl);
-
-        #endregion
 
         #region Public Methods
 
