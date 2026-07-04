@@ -58,22 +58,44 @@ public class MangaReaderService : IMangaReaderService
         bool hasPages = totalPages > 0 || hasLazyIndexableChapter;
 
         bool isFavorito = false;
+        var readChapterIds = new HashSet<int>();
+        int? lastReadChapterNumber = null;
         if (canReview && currentUserId.HasValue)
         {
             isFavorito = await _db.Favoritos
                 .AnyAsync(f => f.UsuarioId == currentUserId.Value && f.MangaId == id);
+
+            var lidos = await _db.CapitulosLidos
+                .Where(cl => cl.UsuarioId == currentUserId.Value && cl.MangaId == id)
+                .Select(cl => new { cl.CapituloId, cl.DataLeitura })
+                .ToListAsync();
+
+            readChapterIds = lidos.Select(l => l.CapituloId).ToHashSet();
+
+            // Capítulo lido mais recentemente (para o botão "Continuar")
+            var ultimoCapituloId = lidos
+                .OrderByDescending(l => l.DataLeitura)
+                .Select(l => (int?)l.CapituloId)
+                .FirstOrDefault();
+            if (ultimoCapituloId.HasValue)
+            {
+                lastReadChapterNumber = manga.Capitulos
+                    .FirstOrDefault(c => c.Id == ultimoCapituloId.Value)?.NumeroCapitulo;
+            }
         }
 
         var reviews = await _reviewService.GetSectionAsync(id, currentUserId, isAuthenticated, canReview);
 
         return new MangaDetailsResult
         {
-            Manga               = manga,
-            PageCountsByChapter = pageCountsByChapter,
-            TotalPages          = totalPages,
-            HasPages            = hasPages,
-            IsFavorito          = isFavorito,
-            Reviews             = reviews
+            Manga                 = manga,
+            PageCountsByChapter   = pageCountsByChapter,
+            TotalPages            = totalPages,
+            HasPages              = hasPages,
+            IsFavorito            = isFavorito,
+            ReadChapterIds        = readChapterIds,
+            LastReadChapterNumber = lastReadChapterNumber,
+            Reviews               = reviews
         };
     }
 

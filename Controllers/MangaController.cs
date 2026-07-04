@@ -14,17 +14,20 @@ namespace AnyComic.Controllers
         private readonly IMangaCatalogService _catalog;
         private readonly IMangaReaderService _reader;
         private readonly IMangaFavoriteService _favorites;
+        private readonly IMangaProgressService _progress;
         private readonly IMangaReviewService _reviews;
 
         public MangaController(
             IMangaCatalogService catalog,
             IMangaReaderService reader,
             IMangaFavoriteService favorites,
+            IMangaProgressService progress,
             IMangaReviewService reviews)
         {
             _catalog = catalog;
             _reader = reader;
             _favorites = favorites;
+            _progress = progress;
             _reviews = reviews;
         }
 
@@ -82,6 +85,9 @@ namespace AnyComic.Controllers
             ViewBag.TotalPages = result.TotalPages;
             ViewBag.HasPages = result.HasPages;
             if (canReview) ViewBag.IsFavorito = result.IsFavorito;
+            ViewBag.ReadChapterIds = result.ReadChapterIds;
+            ViewBag.LastReadChapterNumber = result.LastReadChapterNumber;
+            ViewBag.CanTrackProgress = canReview;
             ViewBag.Reviews = result.Reviews;
 
             return View(result.Manga);
@@ -158,6 +164,32 @@ namespace AnyComic.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: Manga/MarkChapterRead
+        // Registra que o usuário leu um capítulo (chamado via AJAX do leitor / toggle manual).
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkChapterRead(int mangaId, int capituloId)
+        {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            await _progress.MarkChapterReadAsync(CurrentUserId(), mangaId, capituloId);
+            return Json(new { ok = true, lido = true });
+        }
+
+        // POST: Manga/UnmarkChapterRead
+        // Desmarca um capítulo lido (toggle manual na página de detalhes).
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UnmarkChapterRead(int mangaId, int capituloId)
+        {
+            if (User.FindFirstValue("IsAdmin") == "True") return Forbid();
+
+            await _progress.UnmarkChapterReadAsync(CurrentUserId(), capituloId);
+            return Json(new { ok = true, lido = false });
         }
 
         // POST: Manga/AddReview

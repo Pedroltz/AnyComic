@@ -40,6 +40,7 @@ builder.Services.AddScoped<AnyComic.Application.Home.IHomeService, AnyComic.Appl
 builder.Services.AddScoped<IMangaCatalogService, MangaCatalogService>();
 builder.Services.AddScoped<IMangaReaderService, MangaReaderService>();
 builder.Services.AddScoped<IMangaFavoriteService, MangaFavoriteService>();
+builder.Services.AddScoped<IMangaProgressService, MangaProgressService>();
 builder.Services.AddScoped<IMangaReviewService, MangaReviewService>();
 
 // Serviços de aplicação — WeebCentral

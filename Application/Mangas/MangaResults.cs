@@ -12,6 +12,13 @@ public class MangaDetailsResult
     public int TotalPages { get; set; }
     public bool HasPages { get; set; }
     public bool IsFavorito { get; set; }
+
+    /// <summary>Ids dos capítulos já lidos pelo usuário atual (vazio se deslogado).</summary>
+    public HashSet<int> ReadChapterIds { get; set; } = new();
+
+    /// <summary>Número do capítulo lido mais recentemente (para o botão "Continuar").</summary>
+    public int? LastReadChapterNumber { get; set; }
+
     public ReviewsSectionViewModel Reviews { get; set; } = null!;
 }
 

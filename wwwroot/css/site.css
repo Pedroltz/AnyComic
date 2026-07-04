@@ -1482,6 +1482,90 @@ textarea.form-control:focus {
   box-shadow: 0 4px 12px rgba(239, 44, 47, 0.5);
 }
 
+/* ===== Progresso de leitura ===== */
+/* Capítulo já lido: ícone verde preenchido e nome levemente esmaecido */
+.chapter-item.read .chapter-icon {
+  background: #00d9a3;
+}
+
+.chapter-item.read .chapter-icon svg {
+  fill: #0d0d0d !important;
+}
+
+.chapter-item.read .chapter-name {
+  color: var(--text-muted);
+}
+
+/* Botão de toggle manual (marcar/desmarcar lido) */
+.chapter-mark-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chapter-mark-btn:hover {
+  border-color: #00d9a3;
+  color: #00d9a3;
+}
+
+.chapter-mark-btn.marked {
+  background: #00d9a3;
+  border-color: #00d9a3;
+  color: #0d0d0d;
+}
+
+.chapter-mark-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Barra de progresso "X/Y read" no topo da lista de capítulos */
+.reading-progress {
+  padding: 4px 20px 14px;
+}
+
+.reading-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.reading-progress-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.reading-progress-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #00d9a3;
+}
+
+.reading-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-color);
+  overflow: hidden;
+}
+
+.reading-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #00b98a 0%, #00d9a3 100%);
+  transition: width 0.3s ease;
+}
+
 @media (max-width: 768px) {
   .chapter-item {
     padding: 14px 14px;

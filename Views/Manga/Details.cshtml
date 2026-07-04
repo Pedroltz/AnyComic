@@ -2,6 +2,21 @@
 
 @{
     ViewData["Title"] = Model.Titulo;
+
+    // Progresso de leitura (vazio para admin/deslogado)
+    var readChapterIds = ViewBag.ReadChapterIds as HashSet<int> ?? new HashSet<int>();
+    bool canTrackProgress = ViewBag.CanTrackProgress == true;
+    var orderedChapters = Model.Capitulos.OrderBy(c => c.NumeroCapitulo).ToList();
+    int totalChapters = orderedChapters.Count;
+    int readChaptersCount = orderedChapters.Count(c => readChapterIds.Contains(c.Id));
+
+    // Alvo do botão "Continuar": primeiro capítulo não lido, ou o último lido se leu todos
+    int? continueChapterNum = null;
+    if (readChaptersCount > 0)
+    {
+        var nextUnread = orderedChapters.FirstOrDefault(c => !readChapterIds.Contains(c.Id));
+        continueChapterNum = nextUnread?.NumeroCapitulo ?? (int?)ViewBag.LastReadChapterNumber;
+    }
 }
 
 <!-- Manga Details Hero (mobile: blurred bg + cover) -->
@@ -34,12 +49,24 @@
             <div class="details-actions">
                 @if (ViewBag.HasPages == true)
                 {
-                    <a asp-controller="Manga" asp-action="Read" asp-route-id="@Model.Id" class="details-btn details-btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
-                        </svg>
-                        Start Reading
-                    </a>
+                    @if (continueChapterNum.HasValue)
+                    {
+                        <a asp-controller="Manga" asp-action="Read" asp-route-id="@Model.Id" asp-route-capituloNumero="@continueChapterNum.Value" class="details-btn details-btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                            </svg>
+                            Continue Reading (Ch. @continueChapterNum.Value)
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Manga" asp-action="Read" asp-route-id="@Model.Id" class="details-btn details-btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+                            </svg>
+                            Start Reading
+                        </a>
+                    }
                 }
                 else
                 {
@@ -125,6 +152,18 @@
                 <h3 class="details-section-title">Chapters</h3>
                 <span class="details-chapter-count">@Model.Capitulos.Count total</span>
             </div>
+            @if (canTrackProgress)
+            {
+                <div class="reading-progress">
+                    <div class="reading-progress-head">
+                        <span class="reading-progress-label">Reading progress</span>
+                        <span class="reading-progress-count"><span id="chapterProgressText">@readChaptersCount</span>/@totalChapters read</span>
+                    </div>
+                    <div class="reading-progress-bar">
+                        <div class="reading-progress-fill" id="chapterProgressFill" style="width:@((totalChapters > 0 ? readChaptersCount * 100.0 / totalChapters : 0).ToString("F2", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                    </div>
+                </div>
+            }
             <div class="chapter-list chapter-list-collapsed" id="chapterList"></div>
             <div class="chapter-toggle-wrap" id="chapterToggleWrap" style="display:none;">
                 <button class="chapter-toggle-btn" id="chapterToggleBtn" onclick="toggleChapters()">
@@ -136,14 +175,21 @@
             </div>
         </div>
 
+        @if (canTrackProgress)
+        {
+            <form id="detailsProgressForm" style="display:none">@Html.AntiForgeryToken()</form>
+        }
+
         <script>
             (function() {
                 var chapters = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
                     Model.Capitulos.OrderBy(c => c.NumeroCapitulo).Select(c => new {
+                        id = c.Id,
                         numero = c.NumeroCapitulo,
                         nome = c.NomeExibicao,
                         data = c.DataCriacao.ToString("dd/MM/yyyy"),
                         paginas = pageCounts.ContainsKey(c.Id) ? pageCounts[c.Id] : 0,
+                        lido = readChapterIds.Contains(c.Id),
                         url = Url.Action("Read", "Manga", new { id = Model.Id, capituloNumero = c.NumeroCapitulo })
                     })
                 ));
@@ -152,6 +198,13 @@
                 var wrap = document.getElementById('chapterToggleWrap');
                 var btn = document.getElementById('chapterToggleBtn');
 
+                var canTrack = @(canTrackProgress ? "true" : "false");
+                var mangaIdProg = @Model.Id;
+                var totalChapters = @totalChapters;
+                var readCount = @readChaptersCount;
+                var markUrl = '@Url.Action("MarkChapterRead", "Manga")';
+                var unmarkUrl = '@Url.Action("UnmarkChapterRead", "Manga")';
+
                 // Render every chapter once; the overflow is hidden via the
                 // collapsed container class and revealed by the toggle button.
                 var fragment = document.createDocumentFragment();
@@ -159,16 +212,59 @@
                     var c = chapters[i];
                     var a = document.createElement('a');
                     a.href = c.url;
-                    a.className = 'chapter-item' + (i >= INITIAL ? ' chapter-extra' : '');
+                    a.className = 'chapter-item' + (i >= INITIAL ? ' chapter-extra' : '') + (c.lido ? ' read' : '');
+                    var markBtn = canTrack
+                        ? '<button type="button" class="chapter-mark-btn' + (c.lido ? ' marked' : '') + '" data-capid="' + c.id + '" title="Mark as read/unread" aria-label="Mark as read/unread"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/></svg></button>'
+                        : '';
                     a.innerHTML =
                         '<div class="chapter-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#00d9a3" viewBox="0 0 16 16"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/></svg></div>' +
                         '<div class="chapter-info"><h5 class="chapter-name">' + c.nome + '</h5>' +
                         '<div class="chapter-meta"><small><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg> ' + c.data + '</small>' +
                         '<small><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5z"/><path d="M9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0zm0 1v2A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/></svg> ' + c.paginas + ' pages</small></div></div>' +
+                        markBtn +
                         '<span class="chapter-read-btn">Read</span>';
                     fragment.appendChild(a);
                 }
                 list.appendChild(fragment);
+
+                // Toggle manual de "lido" (delegação de evento; não navega para o leitor)
+                if (canTrack) {
+                    var tokenEl = document.querySelector('#detailsProgressForm input[name="__RequestVerificationToken"]');
+                    list.addEventListener('click', function (e) {
+                        var mb = e.target.closest('.chapter-mark-btn');
+                        if (!mb) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (mb.disabled || !tokenEl) return;
+
+                        var item = mb.closest('.chapter-item');
+                        var isRead = item.classList.contains('read');
+                        var body = new URLSearchParams();
+                        body.append('mangaId', mangaIdProg);
+                        body.append('capituloId', mb.getAttribute('data-capid'));
+                        body.append('__RequestVerificationToken', tokenEl.value);
+                        mb.disabled = true;
+
+                        fetch(isRead ? unmarkUrl : markUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: body.toString()
+                        })
+                        .then(function (r) { return r.json(); })
+                        .then(function (res) {
+                            if (res && res.ok) {
+                                item.classList.toggle('read', res.lido);
+                                mb.classList.toggle('marked', res.lido);
+                                readCount = Math.max(0, Math.min(totalChapters, readCount + (res.lido ? 1 : -1)));
+                                var txt = document.getElementById('chapterProgressText');
+                                var fill = document.getElementById('chapterProgressFill');
+                                if (txt) txt.textContent = readCount;
+                                if (fill) fill.style.width = (totalChapters > 0 ? (readCount * 100.0 / totalChapters) : 0).toFixed(2) + '%';
+                            }
+                        })
+                        .finally(function () { mb.disabled = false; });
+                    });
+                }
 
                 if (chapters.length > INITIAL) {
                     var moreLabel = 'Show ' + (chapters.length - INITIAL) + ' more chapters';

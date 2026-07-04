@@ -10,6 +10,10 @@
     var capituloAnterior = ViewBag.CapituloAnterior as AnyComic.Models.Capitulo;
     int paginaAtual = (int)ViewBag.PaginaAtual;
     int totalPaginas = (int)ViewBag.TotalPaginas;
+
+    // Marcação automática de leitura só para usuário logado não-admin
+    bool canTrackProgress = User.Identity?.IsAuthenticated == true
+        && User.FindFirstValue("IsAdmin") != "True";
 }
 
 <!DOCTYPE html>
@@ -988,11 +992,45 @@
         </div>
     </div>
 
+    @if (canTrackProgress)
+    {
+        <form id="progressForm" style="display:none">@Html.AntiForgeryToken()</form>
+    }
+
     <script>
         const mangaId = @ViewBag.MangaId;
         let currentPage = @paginaAtual;
         const totalPages = @totalPaginas;
         const currentChapterNum = @capituloAtual.NumeroCapitulo;
+        const currentChapterId = @capituloAtual.Id;
+        const canTrackProgress = @(canTrackProgress ? "true" : "false");
+        const markReadUrl = '@Url.Action("MarkChapterRead", "Manga")';
+        let chapterMarkedRead = false;
+
+        // Marca o capítulo como lido ao chegar na última página (sinal de "terminou de ler").
+        // Idempotente client-side (flag) e server-side (índice único).
+        function markChapterReadIfFinished() {
+            if (!canTrackProgress || chapterMarkedRead) return;
+
+            const reachedLast = currentPage >= totalPages ||
+                (typeof readingMode !== 'undefined' && readingMode !== 'single' && currentPage + 1 >= totalPages);
+            if (!reachedLast) return;
+
+            chapterMarkedRead = true;
+            const tokenEl = document.querySelector('#progressForm input[name="__RequestVerificationToken"]');
+            if (!tokenEl) return;
+
+            const body = new URLSearchParams();
+            body.append('mangaId', mangaId);
+            body.append('capituloId', currentChapterId);
+            body.append('__RequestVerificationToken', tokenEl.value);
+
+            fetch(markReadUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString()
+            }).catch(function () { chapterMarkedRead = false; });
+        }
         const pageMap = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.PageMap));
         const hasNextChapter = @(proximoCapitulo != null ? "true" : "false");
         const hasPrevChapter = @(capituloAnterior != null ? "true" : "false");
@@ -1136,6 +1174,8 @@
                 '&capituloNumero=' + currentChapterNum +
                 '&pagina=' + currentPage;
             history.replaceState(null, '', newUrl);
+
+            markChapterReadIfFinished();
         }
 
         // ===== ZOOM & PAN SYSTEM =====
@@ -1790,6 +1830,8 @@
         initReadingMode();
         // Initial preload
         preloadAdjacentPages();
+        // Caso o leitor já abra na última página (ex.: capítulo de 1 página), marca de imediato
+        markChapterReadIfFinished();
     </script>
 </body>
 </html>

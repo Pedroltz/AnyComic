@@ -1,4 +1,5 @@
 using AnyComic.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -8,7 +9,8 @@ namespace AnyComic.Data
     {
         public static void Initialize(ApplicationDbContext context)
         {
-            context.Database.EnsureCreated();
+            // Aplica as migrações pendentes no startup (fluxo de migrações, não EnsureCreated)
+            context.Database.Migrate();
 
             // Verificar se já existe um administrador
             if (context.UsuariosAdmin.Any())

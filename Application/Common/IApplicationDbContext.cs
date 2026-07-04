@@ -14,6 +14,7 @@ public interface IApplicationDbContext
     DbSet<Capitulo> Capitulos { get; }
     DbSet<PaginaManga> PaginasMangas { get; }
     DbSet<Favorito> Favoritos { get; }
+    DbSet<CapituloLido> CapitulosLidos { get; }
     DbSet<ReviewManga> ReviewsManga { get; }
     DbSet<ReviewReplyManga> ReviewRepliesManga { get; }
     DbSet<Banner> Banners { get; }

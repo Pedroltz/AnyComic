@@ -17,6 +17,7 @@ namespace AnyComic.Data
         public DbSet<Capitulo> Capitulos { get; set; }
         public DbSet<PaginaManga> PaginasMangas { get; set; }
         public DbSet<Favorito> Favoritos { get; set; }
+        public DbSet<CapituloLido> CapitulosLidos { get; set; }
         public DbSet<Banner> Banners { get; set; }
         public DbSet<Anime> Animes { get; set; }
         public DbSet<Episodio> Episodios { get; set; }
@@ -82,6 +83,30 @@ namespace AnyComic.Data
             modelBuilder.Entity<Favorito>()
                 .HasIndex(f => new { f.UsuarioId, f.MangaId })
                 .IsUnique();
+
+            // ===== Progresso de leitura (CapituloLido) =====
+            // Relacionamento Usuario - CapituloLido
+            modelBuilder.Entity<CapituloLido>()
+                .HasOne(cl => cl.Usuario)
+                .WithMany()
+                .HasForeignKey(cl => cl.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relacionamento Capitulo - CapituloLido
+            modelBuilder.Entity<CapituloLido>()
+                .HasOne(cl => cl.Capitulo)
+                .WithMany()
+                .HasForeignKey(cl => cl.CapituloId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Um registro de leitura por usuário/capítulo (idempotência)
+            modelBuilder.Entity<CapituloLido>()
+                .HasIndex(cl => new { cl.UsuarioId, cl.CapituloId })
+                .IsUnique();
+
+            // Consultas de progresso por mangá
+            modelBuilder.Entity<CapituloLido>()
+                .HasIndex(cl => new { cl.UsuarioId, cl.MangaId });
 
             // Configurar relacionamento Banner -> Manga (opcional)
             modelBuilder.Entity<Banner>()
