@@ -24,7 +24,7 @@
     <style>
         /* Header live search — subtle field that blends into the navbar */
         .header-search { position: relative; margin-left: auto; margin-right: 16px; }
-        .mobile-header-search { display: none; }
+        .mobile-search-toggle, .mobile-header-search { display: none; }
         .header-search-box {
             display: flex; align-items: center; gap: 8px;
             background: rgba(255, 255, 255, .05);
@@ -73,28 +73,59 @@
         }
         .header-search-empty { padding: 16px 14px; font-size: 13px; color: var(--text-muted, #808080); text-align: center; }
         @@media (max-width: 991.98px) {
-            header .navbar { padding: 6px 0; }
-            header .navbar .container-fluid { gap: 10px; padding-inline: 12px; }
-            header .navbar-brand { flex: 0 0 auto; font-size: 1.05rem; line-height: 1; }
+            header { position: relative; z-index: 1040; }
+            header .navbar { padding: 5px 0; min-height: 46px; }
+            header .navbar .container-fluid {
+                position: relative; justify-content: space-between; gap: 8px; padding-inline: 12px;
+            }
+            header .navbar-brand { flex: 0 0 auto; font-size: 1rem; line-height: 1; }
+            .mobile-search-toggle {
+                display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
+                color: rgba(255, 255, 255, .72); background: transparent;
+                border: 1px solid rgba(255, 255, 255, .1); border-radius: 50%;
+                transition: color .18s, background .18s, border-color .18s;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .mobile-search-toggle:hover, .mobile-search-toggle:focus-visible,
+            .mobile-search-toggle[aria-expanded="true"] {
+                color: #fff; background: rgba(255, 255, 255, .08);
+                border-color: rgba(230, 57, 70, .55); outline: none;
+            }
             .mobile-header-search {
-                display: block; flex: 1 1 auto; min-width: 0; margin: 0;
+                position: absolute; top: calc(100% + 6px); left: 12px; right: 12px;
+                display: block; margin: 0; padding: 8px;
+                background: rgba(24, 24, 24, .98); border: 1px solid rgba(255, 255, 255, .1);
+                border-radius: 12px; box-shadow: 0 14px 36px rgba(0, 0, 0, .5);
+                opacity: 0; visibility: hidden; transform: translateY(-6px); pointer-events: none;
+                transition: opacity .18s ease, transform .18s ease, visibility .18s;
+            }
+            .mobile-header-search.open {
+                opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto;
             }
             .mobile-header-search .header-search-box {
-                min-width: 0; height: 38px; padding: 7px 10px;
+                min-width: 0; height: 42px; padding: 7px 8px 7px 11px;
                 border-radius: 9px; background: rgba(255, 255, 255, .07);
             }
             .mobile-header-search .header-search-input { font-size: 16px; }
+            .mobile-search-close {
+                display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px;
+                padding: 0; color: rgba(255, 255, 255, .55); background: transparent;
+                border: 0; border-radius: 50%;
+            }
+            .mobile-search-close:hover, .mobile-search-close:focus-visible {
+                color: #fff; background: rgba(255, 255, 255, .08); outline: none;
+            }
             .mobile-header-search .header-search-dropdown {
-                right: 0; left: auto; width: min(440px, calc(100vw - 24px)); min-width: 0;
+                top: calc(100% + 6px); right: 0; left: 0; width: auto; min-width: 0;
                 max-height: min(55vh, 420px); border-radius: 9px;
             }
             .mobile-header-search .header-search-item { min-height: 64px; padding: 8px 10px; }
             .mobile-header-search .header-search-thumb { width: 36px; height: 50px; }
         }
         @@media (max-width: 380px) {
-            header .navbar .container-fluid { gap: 8px; padding-inline: 10px; }
+            header .navbar .container-fluid { padding-inline: 10px; }
             header .navbar-brand { font-size: .95rem; letter-spacing: 0; }
-            .mobile-header-search .header-search-box { height: 36px; }
+            .mobile-header-search { left: 10px; right: 10px; }
         }
     </style>
 </head>
@@ -104,7 +135,13 @@
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">AnyComic</a>
-                <div class="header-search mobile-header-search" data-live-search>
+                <button type="button" class="mobile-search-toggle" aria-label="Open search"
+                        aria-controls="mobileHeaderSearch" aria-expanded="false" data-mobile-search-toggle>
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                    </svg>
+                </button>
+                <div class="header-search mobile-header-search" id="mobileHeaderSearch" data-live-search>
                     <form class="header-search-box" method="get" asp-controller="Manga" asp-action="Index" role="search" autocomplete="off">
                         <svg class="header-search-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                             <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
@@ -112,6 +149,11 @@
                         <input type="search" name="searchTerm" class="header-search-input"
                                placeholder="Search manga..." aria-label="Search manga" aria-autocomplete="list"
                                aria-expanded="false" enterkeyhint="search" autocomplete="off" data-search-input />
+                        <button type="button" class="mobile-search-close" aria-label="Close search" data-mobile-search-close>
+                            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                            </svg>
+                        </button>
                     </form>
                     <div class="header-search-dropdown" role="listbox" aria-label="Manga suggestions" data-search-dropdown></div>
                 </div>
@@ -437,6 +479,37 @@
                 document.addEventListener('click', function (e) {
                     if (!wrap.contains(e.target)) close();
                 });
+            });
+
+            const mobileToggle = document.querySelector('[data-mobile-search-toggle]');
+            const mobileSearch = document.getElementById('mobileHeaderSearch');
+            const mobileClose = mobileSearch?.querySelector('[data-mobile-search-close]');
+            const mobileInput = mobileSearch?.querySelector('[data-search-input]');
+
+            function setMobileSearch(open) {
+                if (!mobileToggle || !mobileSearch) return;
+                mobileSearch.classList.toggle('open', open);
+                mobileToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                mobileToggle.setAttribute('aria-label', open ? 'Close search' : 'Open search');
+                if (open) window.setTimeout(() => mobileInput?.focus(), 80);
+                else mobileInput?.blur();
+            }
+
+            mobileToggle?.addEventListener('click', function () {
+                setMobileSearch(!mobileSearch.classList.contains('open'));
+            });
+            mobileClose?.addEventListener('click', function () {
+                setMobileSearch(false);
+                mobileToggle.focus();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && mobileSearch?.classList.contains('open')) setMobileSearch(false);
+            });
+            document.addEventListener('click', function (e) {
+                if (mobileSearch?.classList.contains('open') &&
+                    !mobileSearch.contains(e.target) && !mobileToggle?.contains(e.target)) {
+                    setMobileSearch(false);
+                }
             });
         })();
     </script>
