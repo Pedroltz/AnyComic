@@ -24,6 +24,7 @@
     <style>
         /* Header live search — subtle field that blends into the navbar */
         .header-search { position: relative; margin-left: auto; margin-right: 16px; }
+        .mobile-header-search { display: none; }
         .header-search-box {
             display: flex; align-items: center; gap: 8px;
             background: rgba(255, 255, 255, .05);
@@ -71,10 +72,29 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .header-search-empty { padding: 16px 14px; font-size: 13px; color: var(--text-muted, #808080); text-align: center; }
-        @@media (max-width: 991px) {
-            .header-search { margin: 10px 0 4px; width: 100%; }
-            .header-search-box { min-width: 0; }
-            .header-search-dropdown { min-width: 0; }
+        @@media (max-width: 991.98px) {
+            header .navbar { padding: 6px 0; }
+            header .navbar .container-fluid { gap: 10px; padding-inline: 12px; }
+            header .navbar-brand { flex: 0 0 auto; font-size: 1.05rem; line-height: 1; }
+            .mobile-header-search {
+                display: block; flex: 1 1 auto; min-width: 0; margin: 0;
+            }
+            .mobile-header-search .header-search-box {
+                min-width: 0; height: 38px; padding: 7px 10px;
+                border-radius: 9px; background: rgba(255, 255, 255, .07);
+            }
+            .mobile-header-search .header-search-input { font-size: 16px; }
+            .mobile-header-search .header-search-dropdown {
+                right: 0; left: auto; width: min(440px, calc(100vw - 24px)); min-width: 0;
+                max-height: min(55vh, 420px); border-radius: 9px;
+            }
+            .mobile-header-search .header-search-item { min-height: 64px; padding: 8px 10px; }
+            .mobile-header-search .header-search-thumb { width: 36px; height: 50px; }
+        }
+        @@media (max-width: 380px) {
+            header .navbar .container-fluid { gap: 8px; padding-inline: 10px; }
+            header .navbar-brand { font-size: .95rem; letter-spacing: 0; }
+            .mobile-header-search .header-search-box { height: 36px; }
         }
     </style>
 </head>
@@ -84,6 +104,17 @@
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">AnyComic</a>
+                <div class="header-search mobile-header-search" data-live-search>
+                    <form class="header-search-box" method="get" asp-controller="Manga" asp-action="Index" role="search" autocomplete="off">
+                        <svg class="header-search-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg>
+                        <input type="search" name="searchTerm" class="header-search-input"
+                               placeholder="Search manga..." aria-label="Search manga" aria-autocomplete="list"
+                               aria-expanded="false" enterkeyhint="search" autocomplete="off" data-search-input />
+                    </form>
+                    <div class="header-search-dropdown" role="listbox" aria-label="Manga suggestions" data-search-dropdown></div>
+                </div>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -108,15 +139,16 @@
                             </li>
                         }
                     </ul>
-                    <div class="header-search" id="headerSearch">
+                    <div class="header-search" data-live-search>
                         <form class="header-search-box" method="get" asp-controller="Manga" asp-action="Index" role="search" autocomplete="off">
                             <svg class="header-search-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
                             </svg>
-                            <input type="text" name="searchTerm" id="headerSearchInput" class="header-search-input"
-                                   placeholder="Search manga..." aria-label="Search manga" autocomplete="off" />
+                            <input type="search" name="searchTerm" class="header-search-input"
+                                   placeholder="Search manga..." aria-label="Search manga" aria-autocomplete="list"
+                                   aria-expanded="false" enterkeyhint="search" autocomplete="off" data-search-input />
                         </form>
-                        <div class="header-search-dropdown" id="headerSearchDropdown" role="listbox"></div>
+                        <div class="header-search-dropdown" role="listbox" aria-label="Manga suggestions" data-search-dropdown></div>
                     </div>
                     <ul class="navbar-nav header-profile-nav">
                         @if (User.Identity?.IsAuthenticated == true)
@@ -309,89 +341,102 @@
     </script>
 
     <script>
-        // Header live search (manga autocomplete)
+        // Header live search (desktop and mobile manga autocomplete)
         (function () {
-            const wrap = document.getElementById('headerSearch');
-            const input = document.getElementById('headerSearchInput');
-            const dropdown = document.getElementById('headerSearchDropdown');
-            if (!wrap || !input || !dropdown) return;
-
             const suggestUrl = '@Url.Action("Suggest", "Manga")';
             const detailsBase = '@Url.Action("Details", "Manga")';
-            let timer = null, lastQuery = '', items = [], activeIndex = -1;
 
             function escapeHtml(s) {
                 return (s || '').replace(/[&<>"']/g, c =>
                     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
             }
 
-            function close() {
-                dropdown.classList.remove('open');
-                dropdown.innerHTML = '';
-                items = []; activeIndex = -1;
-            }
+            document.querySelectorAll('[data-live-search]').forEach(function (wrap) {
+                const input = wrap.querySelector('[data-search-input]');
+                const dropdown = wrap.querySelector('[data-search-dropdown]');
+                if (!input || !dropdown) return;
 
-            function render(results) {
-                if (!results.length) {
-                    dropdown.innerHTML = '<div class="header-search-empty">No manga found</div>';
-                    dropdown.classList.add('open');
-                    items = []; activeIndex = -1;
-                    return;
+                let timer = null, lastQuery = '', items = [], activeIndex = -1;
+
+                function setExpanded(expanded) {
+                    input.setAttribute('aria-expanded', expanded ? 'true' : 'false');
                 }
-                dropdown.innerHTML = results.map(r => {
-                    const cover = r.imagemCapa
-                        ? '<img class="header-search-thumb" src="' + escapeHtml(r.imagemCapa) + '" alt="" loading="lazy">'
-                        : '<span class="header-search-thumb"></span>';
-                    return '<a class="header-search-item" href="' + detailsBase + '/' + r.id + '">' +
-                        cover +
-                        '<span class="header-search-info">' +
-                            '<div class="header-search-title">' + escapeHtml(r.titulo) + '</div>' +
-                            '<div class="header-search-author">' + escapeHtml(r.autor) + '</div>' +
-                        '</span></a>';
-                }).join('');
-                dropdown.classList.add('open');
-                items = Array.from(dropdown.querySelectorAll('.header-search-item'));
-                activeIndex = -1;
-            }
 
-            async function doSearch(q) {
-                try {
-                    const resp = await fetch(suggestUrl + '?term=' + encodeURIComponent(q));
-                    if (!resp.ok) return;
-                    const data = await resp.json();
-                    if (input.value.trim() !== q) return; // ignore stale response
-                    render(data);
-                } catch (e) { /* ignore transient errors */ }
-            }
+                function close() {
+                    dropdown.classList.remove('open');
+                    dropdown.innerHTML = '';
+                    items = []; activeIndex = -1;
+                    setExpanded(false);
+                }
 
-            function updateActive() {
-                items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
-                if (items[activeIndex]) items[activeIndex].scrollIntoView({ block: 'nearest' });
-            }
+                function render(results) {
+                    if (!results.length) {
+                        dropdown.innerHTML = '<div class="header-search-empty" role="status">No manga found</div>';
+                        dropdown.classList.add('open');
+                        items = []; activeIndex = -1; setExpanded(true);
+                        return;
+                    }
+                    dropdown.innerHTML = results.map(r => {
+                        const cover = r.imagemCapa
+                            ? '<img class="header-search-thumb" src="' + escapeHtml(r.imagemCapa) + '" alt="" loading="lazy">'
+                            : '<span class="header-search-thumb"></span>';
+                        return '<a class="header-search-item" role="option" href="' + detailsBase + '/' + r.id + '">' +
+                            cover +
+                            '<span class="header-search-info">' +
+                                '<div class="header-search-title">' + escapeHtml(r.titulo) + '</div>' +
+                                '<div class="header-search-author">' + escapeHtml(r.autor) + '</div>' +
+                            '</span></a>';
+                    }).join('');
+                    dropdown.classList.add('open');
+                    items = Array.from(dropdown.querySelectorAll('.header-search-item'));
+                    activeIndex = -1; setExpanded(true);
+                }
 
-            input.addEventListener('input', function () {
-                const q = input.value.trim();
-                if (q.length < 2) { close(); lastQuery = ''; return; }
-                if (q === lastQuery) return;
-                lastQuery = q;
-                clearTimeout(timer);
-                timer = setTimeout(() => doSearch(q), 250);
-            });
+                async function doSearch(q) {
+                    try {
+                        const resp = await fetch(suggestUrl + '?term=' + encodeURIComponent(q));
+                        if (!resp.ok) return;
+                        const data = await resp.json();
+                        if (input.value.trim() !== q) return;
+                        render(data);
+                    } catch (e) { /* ignore transient errors */ }
+                }
 
-            input.addEventListener('keydown', function (e) {
-                if (!dropdown.classList.contains('open') || !items.length) return;
-                if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, items.length - 1); updateActive(); }
-                else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); updateActive(); }
-                else if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); window.location.href = items[activeIndex].href; }
-                else if (e.key === 'Escape') { close(); }
-            });
+                function updateActive() {
+                    items.forEach((el, i) => {
+                        const active = i === activeIndex;
+                        el.classList.toggle('active', active);
+                        el.setAttribute('aria-selected', active ? 'true' : 'false');
+                    });
+                    if (items[activeIndex]) items[activeIndex].scrollIntoView({ block: 'nearest' });
+                }
 
-            input.addEventListener('focus', function () {
-                if (items.length && input.value.trim().length >= 2) dropdown.classList.add('open');
-            });
+                input.addEventListener('input', function () {
+                    const q = input.value.trim();
+                    if (q.length < 2) { close(); lastQuery = ''; return; }
+                    if (q === lastQuery) return;
+                    lastQuery = q;
+                    clearTimeout(timer);
+                    timer = setTimeout(() => doSearch(q), 250);
+                });
 
-            document.addEventListener('click', function (e) {
-                if (!wrap.contains(e.target)) close();
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') { close(); input.blur(); return; }
+                    if (!dropdown.classList.contains('open') || !items.length) return;
+                    if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, items.length - 1); updateActive(); }
+                    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); updateActive(); }
+                    else if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); window.location.href = items[activeIndex].href; }
+                });
+
+                input.addEventListener('focus', function () {
+                    if (items.length && input.value.trim().length >= 2) {
+                        dropdown.classList.add('open'); setExpanded(true);
+                    }
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (!wrap.contains(e.target)) close();
+                });
             });
         })();
     </script>
