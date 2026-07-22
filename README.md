@@ -1,7 +1,7 @@
 # AnyComic - Sistema de Gerenciamento de Mangás
 
-![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-8.0-blue)
-![Entity Framework](https://img.shields.io/badge/Entity%20Framework-9.0-green)
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-10.0-blue)
+![Entity Framework](https://img.shields.io/badge/Entity%20Framework-10.0-green)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
 
 Sistema web desenvolvido em ASP.NET Core MVC para gerenciamento e leitura de mangás e exibição de animes online, com área administrativa completa e sistema de autenticação.
@@ -38,8 +38,8 @@ O projeto conta com diagramas técnicos que documentam a arquitetura e casos de 
 
 ## Tecnologias Utilizadas
 
-- **ASP.NET Core MVC 8.0** - Framework web principal
-- **Entity Framework Core 9.0** - ORM para acesso ao banco de dados
+- **ASP.NET Core MVC 10.0** - Framework web principal
+- **Entity Framework Core 10.0** - ORM para acesso ao banco de dados
 - **PostgreSQL** - Sistema de gerenciamento de banco de dados
 - **Bootstrap 5** - Framework CSS para design responsivo
 - **Authentication Cookies** - Sistema de autenticação baseado em cookies
@@ -48,7 +48,7 @@ O projeto conta com diagramas técnicos que documentam a arquitetura e casos de 
 
 Antes de começar, certifique-se de ter instalado:
 
-- [.NET SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) ou superior
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download/dotnet/10.0) ou superior
 - [PostgreSQL](https://www.postgresql.org/download/) (versão 15 ou superior)
 - [pgAdmin](https://www.pgadmin.org/download/) - opcional, para gerenciar o banco
 - [Visual Studio 2022](https://visualstudio.microsoft.com/) ou [VS Code](https://code.visualstudio.com/)
@@ -59,7 +59,7 @@ Antes de começar, certifique-se de ter instalado:
 
 ```bash
 git clone <url-do-repositorio>
-cd AnyComic-FDevs
+cd AnyComic
 ```
 
 ### 2. Configure a Connection String
@@ -164,7 +164,7 @@ O sistema cria automaticamente um usuário administrador:
 ## Estrutura do Projeto
 
 ```
-AnyComic-FDevs/
+AnyComic/
 │
 ├── Controllers/          # Controllers MVC (lógica de negócio)
 │   ├── AdminController.cs       # CRUD de mangás/animes e administração
