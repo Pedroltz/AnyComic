@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using AnyComic.Data;
 using AnyComic.Models;
+using AnyComic.Models.ViewModels;
 using AnyComic.Services;
 using AnyComic.Application.WeebCentral;
 using System.Security.Cryptography;
@@ -53,63 +54,165 @@ namespace AnyComic.Controllers
         /// <summary>
         /// GET: Admin/Index - Displays the administrative panel with Manga, Admins and Banners sections
         /// </summary>
-        public async Task<IActionResult> Index(string searchManga, string searchAdmin, string searchAnime)
+        public async Task<IActionResult> Index(string searchManga, string searchAdmin, string searchAnime, int page = 1)
         {
-            // Check administrator permissions
             if (!IsAdmin())
             {
                 return RedirectToAction("AccessDenied", "Account");
             }
 
-            // Search manga with search filter
-            var mangasQuery = _context.Mangas.Include(m => m.Paginas).AsQueryable();
+            const int pageSize = 20;
 
+            // ── Manga (first tab, loaded eagerly with pagination) ──
+            var mangasQuery = _context.Mangas.AsQueryable();
             if (!string.IsNullOrEmpty(searchManga))
             {
                 mangasQuery = mangasQuery.Where(m =>
                     m.Titulo.Contains(searchManga) ||
                     m.Autor.Contains(searchManga));
             }
+            var mangaTotal = await mangasQuery.CountAsync();
+            var mangas = await mangasQuery
+                .OrderByDescending(m => m.DataCriacao)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new MangaListItem
+                {
+                    Id = m.Id,
+                    Titulo = m.Titulo,
+                    Autor = m.Autor,
+                    ImagemCapa = m.ImagemCapa,
+                    DataCriacao = m.DataCriacao,
+                    PaginasCount = m.Paginas.Count
+                })
+                .ToListAsync();
 
-            var mangas = await mangasQuery.OrderByDescending(m => m.DataCriacao).ToListAsync();
+            // ── Counts only (for tab badges) ──
+            var animeTotal = await _context.Animes.CountAsync();
+            var adminsTotal = await _context.UsuariosAdmin.CountAsync();
+            var bannersTotal = await _context.Banners.CountAsync();
 
-            // Search anime with search filter
-            var animesQuery = _context.Animes.Include(a => a.Episodios).AsQueryable();
-
-            if (!string.IsNullOrEmpty(searchAnime))
-            {
-                animesQuery = animesQuery.Where(a =>
-                    a.Titulo.Contains(searchAnime) ||
-                    a.Autor.Contains(searchAnime));
-            }
-
-            var animes = await animesQuery.OrderByDescending(a => a.DataCriacao).ToListAsync();
-
-            // Search admins with search filter
-            var adminsQuery = _context.UsuariosAdmin.AsQueryable();
-
-            if (!string.IsNullOrEmpty(searchAdmin))
-            {
-                adminsQuery = adminsQuery.Where(a =>
-                    a.Nome.Contains(searchAdmin) ||
-                    a.Email.Contains(searchAdmin));
-            }
-
-            var admins = await adminsQuery.OrderByDescending(a => a.DataCriacao).ToListAsync();
-
-            // Get all banners ordered by display order
-            var banners = await _context.Banners.OrderBy(b => b.Ordem).ToListAsync();
-
-            // Pass data to view using ViewBag
             ViewBag.Mangas = mangas;
-            ViewBag.Animes = animes;
-            ViewBag.Admins = admins;
-            ViewBag.Banners = banners;
+            ViewBag.MangaTotal = mangaTotal;
+            ViewBag.MangaPage = page;
+            ViewBag.MangaPageSize = pageSize;
+            ViewBag.AnimeTotal = animeTotal;
+            ViewBag.AdminsTotal = adminsTotal;
+            ViewBag.BannersTotal = bannersTotal;
             ViewBag.SearchManga = searchManga;
             ViewBag.SearchAnime = searchAnime;
             ViewBag.SearchAdmin = searchAdmin;
 
             return View();
+        }
+
+        /// <summary>
+        /// AJAX: Admin/MangaList - Partial view for manga tab with pagination
+        /// </summary>
+        public async Task<IActionResult> MangaList(string search, int page = 1)
+        {
+            if (!IsAdmin()) return Unauthorized();
+            const int pageSize = 20;
+
+            var query = _context.Mangas.AsQueryable();
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(m => m.Titulo.Contains(search) || m.Autor.Contains(search));
+
+            var total = await query.CountAsync();
+            var mangas = await query
+                .OrderByDescending(m => m.DataCriacao)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new MangaListItem
+                {
+                    Id = m.Id,
+                    Titulo = m.Titulo,
+                    Autor = m.Autor,
+                    ImagemCapa = m.ImagemCapa,
+                    DataCriacao = m.DataCriacao,
+                    PaginasCount = m.Paginas.Count
+                })
+                .ToListAsync();
+
+            ViewBag.Mangas = mangas;
+            ViewBag.MangaTotal = total;
+            ViewBag.MangaPage = page;
+            ViewBag.MangaPageSize = pageSize;
+            ViewBag.SearchManga = search;
+            return PartialView("_MangaTable", mangas);
+        }
+
+        /// <summary>
+        /// AJAX: Admin/AnimeList - Partial view for anime tab with pagination
+        /// </summary>
+        public async Task<IActionResult> AnimeList(string search, int page = 1)
+        {
+            if (!IsAdmin()) return Unauthorized();
+            const int pageSize = 20;
+
+            var query = _context.Animes.AsQueryable();
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(a => a.Titulo.Contains(search) || a.Autor.Contains(search));
+
+            var total = await query.CountAsync();
+            var animes = await query
+                .OrderByDescending(a => a.DataCriacao)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new AnimeListItem
+                {
+                    Id = a.Id,
+                    Titulo = a.Titulo,
+                    Autor = a.Autor,
+                    ImagemCapa = a.ImagemCapa,
+                    DataCriacao = a.DataCriacao,
+                    EpisodiosCount = a.Episodios.Count
+                })
+                .ToListAsync();
+
+            ViewBag.Animes = animes;
+            ViewBag.AnimeTotal = total;
+            ViewBag.AnimePage = page;
+            ViewBag.AnimePageSize = pageSize;
+            ViewBag.SearchAnime = search;
+            return PartialView("_AnimeTable", animes);
+        }
+
+        /// <summary>
+        /// AJAX: Admin/AdminList - Partial view for admins tab with pagination
+        /// </summary>
+        public async Task<IActionResult> AdminList(string search, int page = 1)
+        {
+            if (!IsAdmin()) return Unauthorized();
+            const int pageSize = 20;
+
+            var query = _context.UsuariosAdmin.AsQueryable();
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(a => a.Nome.Contains(search) || a.Email.Contains(search));
+
+            var total = await query.CountAsync();
+            var admins = await query
+                .OrderByDescending(a => a.DataCriacao)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.Admins = admins;
+            ViewBag.AdminTotal = total;
+            ViewBag.AdminPage = page;
+            ViewBag.AdminPageSize = pageSize;
+            ViewBag.SearchAdmin = search;
+            return PartialView("_AdminTable", admins);
+        }
+
+        /// <summary>
+        /// AJAX: Admin/BannerList - Partial view for banners tab
+        /// </summary>
+        public async Task<IActionResult> BannerList()
+        {
+            if (!IsAdmin()) return Unauthorized();
+            var banners = await _context.Banners.OrderBy(b => b.Ordem).ToListAsync();
+            return PartialView("_BannerTable", banners);
         }
 
         /// <summary>

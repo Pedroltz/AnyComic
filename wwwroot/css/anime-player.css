@@ -1,26 +1,26 @@
 /* ── Anime player page — AnyComic ────────────────────────────────────────── */
 
 :root {
-    --ad-accent: #ef2c2f;
-    --ad-panel:  #1c1c1c;
+    --ad-accent: #e63946;
+    --ad-panel:  #1a1a1a;
     --ad-border: rgba(255,255,255,.08);
     --ad-muted:  #9a9a9a;
 
     /* Plyr theme */
-    --plyr-color-main:                     #ef2c2f;
+    --plyr-color-main:                     #e63946;
     --plyr-video-controls-background:      linear-gradient(transparent, rgba(0,0,0,.82));
-    --plyr-control-background-hover:       rgba(239,44,47,.25);
-    --plyr-video-control-background-hover: rgba(239,44,47,.25);
-    --plyr-range-fill-background:          #ef2c2f;
+    --plyr-control-background-hover:       rgba(230,57,70,.25);
+    --plyr-video-control-background-hover: rgba(230,57,70,.25);
+    --plyr-range-fill-background:          #e63946;
     --plyr-range-track-height:             4px;
     --plyr-range-thumb-height:             14px;
     --plyr-range-thumb-background:         #fff;
-    --plyr-range-thumb-shadow:             0 0 0 3px rgba(239,44,47,.35);
+    --plyr-range-thumb-shadow:             0 0 0 3px rgba(230,57,70,.25);
     --plyr-font-size-base:                 13px;
     --plyr-font-size-time:                 13px;
     --plyr-control-icon-size:              17px;
     --plyr-control-padding:                8px;
-    --plyr-badge-background:               #ef2c2f;
+    --plyr-badge-background:               #e63946;
     --plyr-menu-background:                rgba(14,14,14,.97);
     --plyr-menu-color:                     #ddd;
     --plyr-menu-shadow:                    0 8px 32px rgba(0,0,0,.65);
@@ -51,19 +51,19 @@
 
 /* Big play button */
 .ad-player-box .plyr__control--overlaid {
-    background: rgba(239,44,47,.88) !important;
+    background: rgba(230,57,70,.88) !important;
     border-radius: 50% !important;
     width: 68px !important;
     height: 68px !important;
     padding: 0 !important;
-    box-shadow: 0 0 0 10px rgba(239,44,47,.18), 0 6px 28px rgba(0,0,0,.55) !important;
+    box-shadow: 0 0 0 8px rgba(230,57,70,.12), 0 4px 20px rgba(0,0,0,.5) !important;
     transition: transform .18s ease, background .18s, box-shadow .18s !important;
 }
 .ad-player-box .plyr__control--overlaid:hover,
 .ad-player-box .plyr__control--overlaid:focus {
-    background: #d61f22 !important;
+    background: #c5303b !important;
     transform: scale(1.1) !important;
-    box-shadow: 0 0 0 16px rgba(239,44,47,.16), 0 8px 36px rgba(0,0,0,.65) !important;
+     box-shadow: 0 0 0 10px rgba(230,57,70,.1), 0 6px 24px rgba(0,0,0,.55) !important;
 }
 .ad-player-box .plyr__control--overlaid svg { width: 26px !important; height: 26px !important; }
 
@@ -155,7 +155,7 @@
 }
 .ad-ep-item:hover { background: rgba(255,255,255,.06); color: #fff; }
 .ad-ep-item.active {
-    background: rgba(239,44,47,.12);
+    background: rgba(230,57,70,.12);
     box-shadow: inset 3px 0 0 var(--ad-accent);
     color: #fff;
 }
@@ -193,7 +193,7 @@
     cursor: pointer;
     transition: background .15s, color .15s;
 }
-.ad-ep-toggle:hover { background: rgba(239,44,47,.10); color: #ff4d50; }
+.ad-ep-toggle:hover { background: rgba(230,57,70,.10); color: #ff4d5a; }
 .ad-ep-toggle svg { transition: transform .25s ease; }
 .ad-ep-toggle.expanded svg { transform: rotate(180deg); }
 
@@ -236,10 +236,10 @@
     transition: background .15s, border-color .15s; white-space: nowrap;
 }
 .ad-btn:hover       { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.25); color: #fff; }
-.ad-btn-fav-active  { background: rgba(239,44,47,.15); border-color: var(--ad-accent); color: var(--ad-accent); }
+.ad-btn-fav-active  { background: rgba(230,57,70,.15); border-color: var(--ad-accent); color: var(--ad-accent); }
 .ad-btn-prev        { background: rgba(255,255,255,.06); }
 .ad-btn-next        { background: var(--ad-accent); border-color: var(--ad-accent); }
-.ad-btn-next:hover  { background: #d61f22; border-color: #d61f22; color: #fff; }
+.ad-btn-next:hover  { background: #c5303b; border-color: #c5303b; color: #fff; }
 
 /* ── Description card ────────────────────────────────────────────────────────── */
 
@@ -259,7 +259,7 @@
 
 .ad-desc-fade {
     position: absolute; bottom: 0; left: 0; right: 0; height: 44px;
-    background: linear-gradient(transparent, #141414);
+    background: linear-gradient(transparent, #0f0f0f);
     pointer-events: none; transition: opacity .25s;
 }
 .ad-description.expanded + .ad-desc-fade { opacity: 0; pointer-events: none; }
@@ -270,7 +270,7 @@
     cursor: pointer; padding: 6px 0 0;
     display: inline-flex; align-items: center; gap: 5px;
 }
-.ad-read-more:hover { color: #ff4d50; }
+.ad-read-more:hover { color: #ff4d5a; }
 
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 

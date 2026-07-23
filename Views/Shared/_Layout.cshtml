@@ -22,21 +22,20 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/AnyComic.styles.css" asp-append-version="true" />
     <style>
-        /* Header live search — subtle field that blends into the navbar */
-        .header-search { position: relative; margin-left: auto; margin-right: 16px; }
-        .mobile-search-toggle, .mobile-header-search { display: none; }
+        /* Header live search — desktop */
+        .header-search { position: relative; margin-left: auto; margin-right: 8px; }
         .header-search-box {
             display: flex; align-items: center; gap: 8px;
-            background: rgba(255, 255, 255, .05);
-            border: 1px solid rgba(255, 255, 255, .09);
-            border-radius: 10px; padding: 8px 14px; min-width: 300px;
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 12px; padding: 8px 14px; min-width: 280px;
             transition: background .2s, border-color .2s, box-shadow .2s;
         }
-        .header-search-box:hover { background: rgba(255, 255, 255, .08); }
+        .header-search-box:hover { background: rgba(255, 255, 255, .07); }
         .header-search-box:focus-within {
-            background: rgba(255, 255, 255, .08);
-            border-color: rgba(230, 57, 70, .65);
-            box-shadow: 0 0 0 3px rgba(230, 57, 70, .15);
+            background: rgba(255, 255, 255, .07);
+            border-color: rgba(230, 57, 70, .5);
+            box-shadow: 0 0 0 3px rgba(230, 57, 70, .1);
         }
         .header-search-icon { color: rgba(255, 255, 255, .4); flex-shrink: 0; }
         .header-search-box:focus-within .header-search-icon { color: var(--primary-red, #e63946); }
@@ -49,17 +48,18 @@
             position: absolute; top: calc(100% + 8px); left: 0; right: 0; min-width: 340px;
             background: var(--bg-darker, #1a1a1a);
             border: 1px solid var(--border-color, #3a3a3a);
-            border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+            border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, .6);
             overflow: hidden auto; max-height: 460px; display: none; z-index: 1050;
         }
         .header-search-dropdown.open { display: block; }
         .header-search-item {
             display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-            text-decoration: none; color: var(--text-primary, #f0f0f0); transition: background .15s;
+            text-decoration: none; color: var(--text-primary, #f0f0f0);
+            transition: background .12s; border-radius: 6px; margin: 2px 6px;
         }
         .header-search-item:hover, .header-search-item.active { background: rgba(255, 255, 255, .06); }
         .header-search-thumb {
-            width: 44px; height: 60px; object-fit: cover; border-radius: 5px;
+            width: 44px; height: 60px; object-fit: cover; border-radius: 6px;
             flex-shrink: 0; background: var(--bg-light, #2a2a2a);
         }
         .header-search-info { min-width: 0; }
@@ -72,30 +72,47 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .header-search-empty { padding: 16px 14px; font-size: 13px; color: var(--text-muted, #808080); text-align: center; }
+
+        /* ── Mobile header ── */
+        .mobile-header-actions, .mobile-header-search, .mobile-profile-dropdown { display: none; }
         @@media (max-width: 991.98px) {
             header { position: relative; z-index: 1040; }
-            header .navbar { padding: 6px 0; min-height: 50px; }
+            header .navbar { padding: 8px 0; min-height: 52px; }
             header .navbar .container-fluid {
-                position: relative; justify-content: space-between; gap: 8px; padding-inline: 12px;
+                position: relative; display: flex; align-items: center;
+                justify-content: space-between; gap: 6px; padding-inline: 12px;
             }
-            header .navbar-brand { flex: 0 0 auto; font-size: 1rem; line-height: 1; }
-            .mobile-search-toggle {
+            header .navbar-brand { flex: 0 0 auto; font-size: 1.15rem; line-height: 1; letter-spacing: 1.5px; }
+
+            /* Header right actions */
+            .mobile-header-actions {
+                display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+            }
+            .mobile-header-btn {
                 display: grid; place-items: center; width: 38px; height: 38px; padding: 0;
-                color: rgba(255, 255, 255, .72); background: transparent;
-                border: 1px solid rgba(255, 255, 255, .1); border-radius: 50%;
-                transition: color .18s, background .18s, border-color .18s;
-                -webkit-tap-highlight-color: transparent;
+                color: rgba(255,255,255,.72); background: transparent; border: none;
+                border-radius: 8px; cursor: pointer;
+                -webkit-tap-highlight-color: transparent; transition: background .15s, color .15s;
             }
-            .mobile-search-toggle:hover, .mobile-search-toggle:focus-visible,
-            .mobile-search-toggle[aria-expanded="true"] {
-                color: #fff; background: rgba(255, 255, 255, .08);
-                border-color: rgba(230, 57, 70, .55); outline: none;
+            .mobile-header-btn:hover, .mobile-header-btn:focus-visible { color: #fff; background: rgba(255,255,255,.08); outline: none; }
+            .mobile-header-btn[aria-expanded="true"] { color: var(--primary-red, #e63946); }
+
+            /* Header avatar */
+            .mobile-header-avatar {
+                width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
             }
+            .mobile-header-avatar-placeholder {
+                width: 30px; height: 30px; border-radius: 50%;
+                background: var(--primary-red, #e63946); color: #fff;
+                display: grid; place-items: center; font-size: 13px; font-weight: 700;
+            }
+
+            /* Mobile search panel */
             .mobile-header-search {
-                position: absolute; top: calc(100% + 6px); left: 12px; right: 12px;
+                position: absolute; top: calc(100% + 4px); left: 12px; right: 12px;
                 display: block; margin: 0; padding: 8px;
-                background: rgba(24, 24, 24, .98); border: 1px solid rgba(255, 255, 255, .1);
-                border-radius: 12px; box-shadow: 0 14px 36px rgba(0, 0, 0, .5);
+                background: rgba(24,24,24,.98); border: 1px solid rgba(255,255,255,.1);
+                border-radius: 12px; box-shadow: 0 14px 36px rgba(0,0,0,.5);
                 opacity: 0; visibility: hidden; transform: translateY(-6px); pointer-events: none;
                 transition: opacity .18s ease, transform .18s ease, visibility .18s;
             }
@@ -104,23 +121,70 @@
             }
             .mobile-header-search .header-search-box {
                 min-width: 0; height: 42px; padding: 7px 8px 7px 11px;
-                border-radius: 9px; background: rgba(255, 255, 255, .07);
+                border-radius: 9px; background: rgba(255,255,255,.07);
             }
             .mobile-header-search .header-search-input { font-size: 16px; }
             .mobile-search-close {
                 display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px;
-                padding: 0; color: rgba(255, 255, 255, .55); background: transparent;
-                border: 0; border-radius: 50%;
+                padding: 0; color: rgba(255,255,255,.55); background: transparent;
+                border: 0; border-radius: 50%; cursor: pointer;
             }
-            .mobile-search-close:hover, .mobile-search-close:focus-visible {
-                color: #fff; background: rgba(255, 255, 255, .08); outline: none;
-            }
+            .mobile-search-close:hover, .mobile-search-close:focus-visible { color: #fff; background: rgba(255,255,255,.08); outline: none; }
             .mobile-header-search .header-search-dropdown {
                 top: calc(100% + 6px); right: 0; left: 0; width: auto; min-width: 0;
                 max-height: min(55vh, 420px); border-radius: 9px;
             }
             .mobile-header-search .header-search-item { min-height: 64px; padding: 8px 10px; }
             .mobile-header-search .header-search-thumb { width: 36px; height: 50px; }
+
+            /* Mobile profile dropdown */
+            .mobile-profile-dropdown {
+                display: none;
+                position: absolute; top: calc(100% + 6px); right: 12px;
+                width: 240px; background: var(--bg-darker, #1a1a1a);
+                border: 1px solid var(--border-color, #3a3a3a);
+                border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.55);
+                z-index: 1060; overflow: hidden;
+            }
+            .mobile-profile-dropdown.open { display: block; }
+            .mobile-profile-dd-header {
+                display: flex; align-items: center; gap: 12px;
+                padding: 16px 16px 12px;
+                border-bottom: 1px solid var(--border-color, #3a3a3a);
+            }
+            .mobile-dd-avatar {
+                width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+            }
+            .mobile-dd-avatar-ph {
+                width: 40px; height: 40px; border-radius: 50%;
+                background: var(--primary-red, #e63946); color: #fff;
+                display: grid; place-items: center; font-size: 17px; font-weight: 700;
+                flex-shrink: 0;
+            }
+            .mobile-dd-name { font-size: 15px; font-weight: 600; color: #fff; }
+            .mobile-profile-dd-actions { padding: 6px; }
+            .mobile-dd-link {
+                display: flex; align-items: center; gap: 12px;
+                width: 100%; padding: 12px 14px; border-radius: 8px;
+                color: var(--text-primary, #f0f0f0); font-size: 14px;
+                text-decoration: none; background: transparent; border: none;
+                cursor: pointer; font-family: inherit;
+                transition: background .15s;
+            }
+            .mobile-dd-link:hover, .mobile-dd-link:focus-visible {
+                background: rgba(255,255,255,.06); color: #fff; text-decoration: none; outline: none;
+            }
+            .mobile-dd-link-danger { color: var(--primary-red, #e63946); }
+            .mobile-dd-link-danger:hover { background: rgba(230,57,70,.08); color: var(--primary-red); }
+            .mobile-dd-divider {
+                height: 1px; background: var(--border-color, #3a3a3a);
+                margin: 4px 12px;
+            }
+
+            /* Hide desktop nav elements on mobile */
+            .navbar-toggler { display: none !important; }
+            .navbar-collapse:not(.show) { display: none !important; }
+            .navbar-collapse.show { display: block !important; }
         }
         @@media (max-width: 380px) {
             header .navbar .container-fluid { padding-inline: 10px; }
@@ -130,17 +194,38 @@
     </style>
 </head>
 <body>
-    <!-- Navigation Bar - HotComics Style -->
+    <!-- Navigation Bar -->
     <header>
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
+
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">AnyComic</a>
-                <button type="button" class="mobile-search-toggle" aria-label="Open search"
-                        aria-controls="mobileHeaderSearch" aria-expanded="false" data-mobile-search-toggle>
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                    </svg>
-                </button>
+
+                <!-- Mobile right actions: search + profile -->
+                <div class="mobile-header-actions">
+                    <button type="button" class="mobile-header-btn" aria-label="Open search"
+                            aria-controls="mobileHeaderSearch" aria-expanded="false" data-mobile-search-toggle>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg>
+                    </button>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <button type="button" class="mobile-header-btn" id="mobileProfileBtn"
+                                aria-label="Profile menu" aria-expanded="false" data-mobile-profile-toggle>
+                            @if (!string.IsNullOrEmpty(headerPhoto))
+                            {
+                                <img src="@headerPhoto" alt="@headerName" class="mobile-header-avatar" />
+                            }
+                            else
+                            {
+                                <span class="mobile-header-avatar-placeholder">@headerInitial</span>
+                            }
+                        </button>
+                    }
+                </div>
+
+                <!-- Mobile search panel -->
                 <div class="header-search mobile-header-search" id="mobileHeaderSearch" data-live-search>
                     <form class="header-search-box" method="get" asp-controller="Manga" asp-action="Index" role="search" autocomplete="off">
                         <svg class="header-search-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -243,6 +328,58 @@
                 </div>
             </div>
         </nav>
+
+        <!-- Mobile Profile Dropdown -->
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="mobile-profile-dropdown" id="mobileProfileDropdown">
+                <div class="mobile-profile-dd-header">
+                    @if (!string.IsNullOrEmpty(headerPhoto))
+                    {
+                        <img src="@headerPhoto" alt="@headerName" class="mobile-dd-avatar" />
+                    }
+                    else
+                    {
+                        <span class="mobile-dd-avatar-ph">@headerInitial</span>
+                    }
+                    <div>
+                        <div class="mobile-dd-name">@headerName</div>
+                    </div>
+                </div>
+                <div class="mobile-profile-dd-actions">
+                    @if (User.Claims.Any(c => c.Type == "IsAdmin" && c.Value == "True"))
+                    {
+                        <a asp-controller="Admin" asp-action="Index" class="mobile-dd-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/></svg>
+                            <span>Admin Panel</span>
+                        </a>
+                    }
+                    @if (!User.Claims.Any(c => c.Type == "IsAdmin" && c.Value == "True"))
+                    {
+                        <a href="/Profile/@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" class="mobile-dd-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/></svg>
+                            <span>My Profile</span>
+                        </a>
+                        <a asp-controller="Manga" asp-action="Favoritos" class="mobile-dd-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/></svg>
+                            <span>Manga Favorites</span>
+                        </a>
+                        <a asp-controller="Anime" asp-action="Favoritos" class="mobile-dd-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/></svg>
+                            <span>Anime Favorites</span>
+                        </a>
+                    }
+                    <div class="mobile-dd-divider"></div>
+                    <form method="post" asp-controller="Account" asp-action="Logout" style="margin:0;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="mobile-dd-link mobile-dd-link-danger">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>
+                            <span>Sign out</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
     </header>
 
     <!-- Main Content -->
@@ -271,108 +408,22 @@
             </svg>
             <span>Manga</span>
         </a>
+        @if (User.Identity?.IsAuthenticated == true && !User.Claims.Any(c => c.Type == "IsAdmin" && c.Value == "True"))
+        {
+            <a href="@Url.Action("Favoritos", "Manga")" class="mobile-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Favoritos" ? "active" : "")">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+                </svg>
+                <span>Favorites</span>
+            </a>
+        }
         <a href="@Url.Action("Index", "Anime")" class="mobile-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Anime" ? "active" : "")">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M0 1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1zm4 0v6h8V1H4zm8 8H4v6h8V9zM1 1v2h2V1H1zm2 3H1v2h2V4zM1 7v2h2V7H1zm2 3H1v2h2v-2zm-2 3v2h2v-2H1zM15 1h-2v2h2V1zm-2 3v2h2V4h-2zm2 3h-2v2h2V7zm-2 3v2h2v-2h-2zm2 3h-2v2h2v-2zM6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
             </svg>
-            <span>Anime <span style="font-size:9px;font-weight:700;background:#ef2c2f;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle;">BETA</span></span>
+            <span>Anime <span style="font-size:9px;font-weight:700;background:var(--primary-red,#e63946);color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle;">BETA</span></span>
         </a>
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <a href="@Url.Action("Login", "Account")" class="mobile-nav-item" id="mobileNavProfile" onclick="event.preventDefault(); document.getElementById('mobileProfileMenu').classList.toggle('open');">
-                @if (!string.IsNullOrEmpty(headerPhoto))
-                {
-                    <img src="@headerPhoto" alt="@headerName" class="mobile-nav-avatar" />
-                }
-                else
-                {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                        <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-                    </svg>
-                }
-                <span>@headerName</span>
-            </a>
-        }
-        else
-        {
-            <a href="@Url.Action("Login", "Account")" class="mobile-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Login" ? "active" : "")">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/>
-                    <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
-                </svg>
-                <span>Sign in</span>
-            </a>
-        }
     </nav>
-
-    <!-- Mobile Profile Popup Menu -->
-    @if (User.Identity?.IsAuthenticated == true)
-    {
-        <div class="mobile-profile-menu" id="mobileProfileMenu">
-            <div class="mobile-profile-menu-backdrop" onclick="document.getElementById('mobileProfileMenu').classList.remove('open');"></div>
-            <div class="mobile-profile-menu-content">
-                <div class="mobile-profile-header">
-                    @if (!string.IsNullOrEmpty(headerPhoto))
-                    {
-                        <img src="@headerPhoto" alt="@headerName" class="mobile-profile-avatar" />
-                    }
-                    else
-                    {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-                        </svg>
-                    }
-                    <span>@headerName</span>
-                </div>
-                <div class="mobile-profile-actions">
-                    @if (User.Claims.Any(c => c.Type == "IsAdmin" && c.Value == "True"))
-                    {
-                        <a href="@Url.Action("Index", "Admin")" class="mobile-profile-action">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-                            </svg>
-                            Admin
-                        </a>
-                    }
-                    @if (!User.Claims.Any(c => c.Type == "IsAdmin" && c.Value == "True"))
-                    {
-                        <a href="/Profile/@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" class="mobile-profile-action">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                                <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-                            </svg>
-                            My Profile
-                        </a>
-                        <a href="@Url.Action("Favoritos", "Manga")" class="mobile-profile-action">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
-                            </svg>
-                            Manga Favorites
-                        </a>
-                        <a href="@Url.Action("Favoritos", "Anime")" class="mobile-profile-action">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-                            </svg>
-                            Anime Favorites
-                        </a>
-                    }
-                    <div class="mobile-profile-divider"></div>
-                    <form method="post" asp-controller="Account" asp-action="Logout" style="margin: 0;">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="mobile-profile-action mobile-profile-action-danger">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
-                                <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
-                            </svg>
-                            Sign out
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -510,6 +561,29 @@
                     !mobileSearch.contains(e.target) && !mobileToggle?.contains(e.target)) {
                     setMobileSearch(false);
                 }
+            });
+        })();
+    </script>
+
+    <script>
+        // Mobile profile dropdown toggle
+        (function () {
+            const btn = document.querySelector('[data-mobile-profile-toggle]');
+            const dd = document.getElementById('mobileProfileDropdown');
+            if (!btn || !dd) return;
+
+            function open() { dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+            function close() { dd.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                dd.classList.contains('open') ? close() : open();
+            });
+            document.addEventListener('click', function (e) {
+                if (!dd.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && dd.classList.contains('open')) close();
             });
         })();
     </script>
