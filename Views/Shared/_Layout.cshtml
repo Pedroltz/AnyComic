@@ -10,9 +10,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - AnyComic</title>
-    <link rel="icon" type="image/x-icon" href="~/icon.ico" />
+    <link rel="icon" type="image/svg+xml" href="~/icons/anycomic-red-panda.svg" />
+    <link rel="alternate icon" href="~/icon.ico" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#e63946" />
+    <meta name="theme-color" content="#101117" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -21,6 +22,8 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/AnyComic.styles.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/anycomic-refresh.css" asp-append-version="true" />
     <style>
         /* Header live search — subtle field that blends into the navbar */
         .header-search { position: relative; margin-left: auto; margin-right: 16px; }
@@ -83,7 +86,7 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">AnyComic</a>
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index"><img src="/icons/anycomic-red-panda.svg" class="ac-logo" width="36" height="36" alt="" /><span>Any<span class="ac-accent">Comic</span></span></a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -300,6 +303,7 @@
         </div>
     }
 
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -396,6 +400,9 @@
         })();
     </script>
 
+    <div x-data="{ show: false }" x-init="window.addEventListener('scroll', () => show = window.scrollY > 500, { passive: true })">
+      <button type="button" class="ac-backtop" x-show="show" x-cloak @@click="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Voltar ao topo">↑</button>
+    </div>
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
