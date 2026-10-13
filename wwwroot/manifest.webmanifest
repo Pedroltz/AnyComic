@@ -4,12 +4,20 @@
   "description": "Leia mangás e assista animes online",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#e63946",
+  "background_color": "#0d0e14",
+  "theme_color": "#fa4055",
   "orientation": "portrait-primary",
   "lang": "pt-BR",
-  "categories": ["entertainment"],
+  "categories": [
+    "entertainment"
+  ],
   "icons": [
+    {
+      "src": "/icons/anycomic-red-panda.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
